@@ -189,14 +189,22 @@ def main():
                    "Favicon. Heavier than the brand weight so the thin strokes "
                    "survive a 16px render.", square=True)
 
-    # Icons. Weight climbs as the canvas shrinks.
-    for px, weight, scale in ((16, 700, 0.88), (32, 650, 0.80), (48, 600, 0.76)):
-        write_png(out("icons", f"favicon-{px}.png"), px, px, INK,
-                  "Æ", weight, 0, PAPER, scale)
-    # Opaque on purpose: iOS paints black behind a transparent touch icon.
-    for name, px in (("apple-touch-icon", 180), ("icon-192", 192), ("icon-512", 512)):
-        write_png(out("icons", f"{name}.png"), px, px, INK,
-                  "Æ", 600, 0, PAPER, 0.60)
+    # Icons, in both tones. The default is paper-on-ink, which matches the site;
+    # the -light pair is ink-on-paper, for a light surface or anywhere a dark
+    # tile reads as a hole. Icons carry a solid background either way — a
+    # transparent favicon is invisible against half the browser themes there are.
+    #
+    # Weight climbs as the canvas shrinks.
+    tones = (("", INK, PAPER), ("-light", PAPER, MARK_INK))
+    for suffix, bg, fg in tones:
+        for px, weight, scale in ((16, 700, 0.88), (32, 650, 0.80), (48, 600, 0.76)):
+            write_png(out("icons", f"favicon-{px}{suffix}.png"), px, px, bg,
+                      "Æ", weight, 0, fg, scale)
+        # Opaque on purpose: iOS paints black behind a transparent touch icon.
+        for name, px in (("apple-touch-icon", 180), ("icon-192", 192),
+                         ("icon-512", 512)):
+            write_png(out("icons", f"{name}{suffix}.png"), px, px, bg,
+                      "Æ", 600, 0, fg, 0.60)
 
     # Social and profile. Always opaque — these get uploaded, not composited.
     write_png(out("social", "profile-dark-1000.png"), 1000, 1000, INK,
@@ -205,6 +213,8 @@ def main():
               "Æ", BRAND_WEIGHT, 0, MARK_INK, 0.52)
     write_png(out("social", "og-1200x630.png"), 1200, 630, INK,
               "ÆRIOUS", BRAND_WEIGHT, TRACKING, PAPER, 0.56)
+    write_png(out("social", "og-1200x630-light.png"), 1200, 630, PAPER,
+              "ÆRIOUS", BRAND_WEIGHT, TRACKING, MARK_INK, 0.56)
     write_png(out("social", "x-header-1500x500.png"), 1500, 500, INK,
               "ÆRIOUS", BRAND_WEIGHT, TRACKING, PAPER, 0.42)
     write_png(out("social", "linkedin-cover-1128x191.png"), 1128, 191, INK,
@@ -226,6 +236,12 @@ def main():
                   320, 132, None, "ÆRIOUS", BRAND_WEIGHT, TRACKING, color, 0.94)
         write_png(out("workspace", f"workspace-mark-{tone}-320x132.png"),
                   320, 132, None, "Æ", BRAND_WEIGHT, 0, color, 0.42)
+    # Opaque pair, no alpha channel at all. Some uploaders refuse or mangle
+    # transparency; these two have nothing to refuse.
+    write_png(out("workspace", "workspace-wordmark-on-white-320x132.png"),
+              320, 132, PAPER, "ÆRIOUS", BRAND_WEIGHT, TRACKING, MARK_INK, 0.94)
+    write_png(out("workspace", "workspace-wordmark-on-black-320x132.png"),
+              320, 132, INK, "ÆRIOUS", BRAND_WEIGHT, TRACKING, PAPER, 0.94)
 
     # Transparent PNGs, for places that will not take an SVG.
     for tone, color in (("white", PAPER), ("black", MARK_INK)):
