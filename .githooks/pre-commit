@@ -1,0 +1,21 @@
+#!/bin/sh
+# This repository is public and its history is permanent: anything committed
+# here cannot be un-published later. aerious.co carries no personal identity by
+# design, so block the known markers before they become unremovable.
+#
+# Deliberate exception: git commit --no-verify
+
+PATTERN='henrykim|mail2yjkim|Henry Kim'
+FILES='FOUNDING|(^|/)\.env'
+
+names=$(git diff --cached --name-only --diff-filter=d | grep -iE "$FILES")
+# the hook spells the patterns out, so it must not scan itself
+lines=$(git diff --cached --diff-filter=d -- . ':(exclude).githooks/pre-commit' | grep -inE "^\+.*($PATTERN)")
+
+if [ -n "$names" ] || [ -n "$lines" ]; then
+  echo "pre-commit: blocked — personal or private content in staged changes." >&2
+  [ -n "$names" ] && { echo "  files:" >&2; echo "$names" | sed 's/^/    /' >&2; }
+  [ -n "$lines" ] && { echo "  lines:" >&2; echo "$lines" | head -20 | sed 's/^/    /' >&2; }
+  echo "  (intentional? git commit --no-verify)" >&2
+  exit 1
+fi
