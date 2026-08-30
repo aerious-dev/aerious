@@ -241,14 +241,19 @@
 
 /* ---------- footer ---------- */
 
+/* One line: mark, then the copyright, then the links pushed to the far edge.
+   It wraps to stacked rows on narrow screens — see the media query below. */
 .ae-ft {
     border-top: 1px solid var(--ae-line);
-    padding: 40px 26px 56px;
-    display: grid;
-    gap: 26px;
+    padding: 34px 26px 44px;
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 16px 26px;
 }
 .ae-ft-mark { font-family: var(--ae-serif); font-weight: 475; font-size: 28px; letter-spacing: 0.01em; }
-.ae-ft-links { display: flex; flex-wrap: wrap; gap: 22px; color: var(--ae-dim); }
+.ae-ft-copy { color: var(--ae-dim); }
+.ae-ft-links { display: flex; flex-wrap: wrap; gap: 22px; margin-left: auto; color: var(--ae-dim); }
 .ae-ft-links a:hover { color: var(--ae-fg); }
 
 /* ---------- the mark: progress, logo and table of contents at once ---------- */
@@ -328,7 +333,9 @@
     .ae-panel-meta { left: 16px; right: 16px; bottom: 110px; max-width: none; }
     .ae-map { padding: 76px 16px 16px; }
     .ae-map-foot { grid-template-columns: 1fr; }
+    /* stacked, all left-aligned: margin-left:auto would strand the links */
     .ae-ft { padding: 32px 16px 44px; }
+    .ae-ft-links { margin-left: 0; }
     .ae-mark svg { width: 52px; height: 52px; }
 }
 

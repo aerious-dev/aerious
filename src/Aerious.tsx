@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import './aerious.css';
 
-const MAIL = 'mailto:admin@aerious.co';
+// Customer-facing address. admin@ is the Workspace owner account and should
+// not be printed on a public page.
+const MAIL = 'mailto:support@aerious.co';
 
 // ÆRIOUS — aerious.co.
 //
@@ -361,8 +363,13 @@ export function Aerious() {
 
       <footer className="ae-ft">
         <div className="ae-ft-mark">ÆRIOUS</div>
+        {/* the year is read at render, so a build in January is not stale */}
+        <p className="ae-ft-copy ae-cap">
+          ÆRIOUS {new Date().getFullYear()}. All rights reserved.
+        </p>
         <div className="ae-ft-links ae-cap">
           <a href={MAIL}>Contact</a>
+          <a href="/privacy.html">Privacy</a>
         </div>
       </footer>
 

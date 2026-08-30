@@ -17,11 +17,14 @@ test('the five stages render in order', () => {
 
 // This is a company site now: the only outbound link is the company address.
 // Anything pointing at a personal domain has no business here.
-test('links off-site only to the aerious.co contact address', () => {
+test('leaves the site only for aerious.co support and its own privacy page', () => {
   renderPage();
   const hrefs = [...document.querySelectorAll('a')].map((a) => a.getAttribute('href') ?? '');
   expect(hrefs.length).toBeGreaterThan(0);
-  expect(hrefs.every((h) => h === 'mailto:admin@aerious.co')).toBe(true);
+  const allowed = ['mailto:support@aerious.co', '/privacy.html'];
+  expect(hrefs.filter((h) => !allowed.includes(h))).toEqual([]);
+  // admin@ is the Workspace owner account: never printed publicly
+  expect(hrefs.some((h) => h.includes('admin@'))).toBe(false);
 });
 
 // The mark is the whole idea: at rest the arc is undrawn and only the first

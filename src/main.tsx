@@ -5,7 +5,7 @@ import './aerious.css';
 
 // For the engineers who read source.
 console.log(
-  '%cÆRIOUS\n%cfrom aer, Latin for air. admin@aerious.co',
+  '%cÆRIOUS\n%cfrom aer, Latin for air. support@aerious.co',
   'font-size: 14px; letter-spacing: 2px; color: #fafafa;',
   'color: #7a7a7a;',
 );
