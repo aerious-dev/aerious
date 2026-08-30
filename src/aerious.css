@@ -1,0 +1,339 @@
+/* THE LOOP — a parallel version of this site, at /v2.
+   Everything is scoped under .ae so the classic site is untouched. The page is
+   its own fixed scroller (like Arc'teryx's System_0): the document never
+   scrolls, so the global sidebar/progress chrome has nothing to fight over. */
+
+.ae {
+    --ae-bg: #0b0b0b;
+    --ae-fg: #fafafa;
+    --ae-dim: #7a7a7a;
+    --ae-line: rgba(250, 250, 250, 0.16);
+    /* one easing for the whole page, one pair of durations. that's the budget. */
+    --ae-e: cubic-bezier(0.42, 0, 0.58, 1);
+    --ae-serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+    --ae-sans: -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Helvetica, Arial, sans-serif;
+
+    position: fixed;
+    inset: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    background: var(--ae-bg);
+    color: var(--ae-fg);
+    font-family: var(--ae-sans);
+    -webkit-font-smoothing: antialiased;
+}
+
+.ae ::selection { background: #fafafa; color: #0b0b0b; }
+
+.ae a { color: inherit; text-decoration: none; }
+.ae button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+.ae :focus-visible { outline: 1px solid var(--ae-fg); outline-offset: 4px; }
+
+/* Two faces, four sizes, and captions in caps. Nothing else gets a size. */
+.ae-cap {
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    line-height: 1.4;
+}
+.ae-body { font-size: 15px; line-height: 1.55; color: var(--ae-dim); }
+.ae-serif { font-family: var(--ae-serif); font-weight: 300; }
+
+/* ---------- header ---------- */
+
+.ae-hd {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 40;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: start;
+    gap: 28px;
+    padding: 22px 26px;
+    pointer-events: none;
+    transition: opacity 0.4s var(--ae-e);
+}
+.ae-hd > * { pointer-events: auto; }
+.ae-hd.is-hidden { opacity: 0; pointer-events: none; }
+
+.ae-wordmark {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    font-family: var(--ae-serif);
+    font-weight: 300;
+    font-size: 23px;
+    letter-spacing: 0.13em;
+}
+.ae-wordmark svg { width: 34px; height: 34px; display: block; }
+
+.ae-hd-sub {
+    align-self: center;
+    justify-self: start;
+    max-width: 15ch;
+    color: var(--ae-fg);
+}
+
+.ae-hd-nav { display: flex; flex-direction: column; gap: 3px; text-align: right; }
+.ae-hd-nav a, .ae-hd-nav span { color: var(--ae-dim); transition: color 0.2s var(--ae-e); }
+.ae-hd-nav a:hover { color: var(--ae-fg); }
+.ae-hd-nav .is-here { color: var(--ae-fg); }
+
+/* ---------- opening: one video, three statements ---------- */
+
+.ae-open { height: 300svh; position: relative; }
+.ae-open-stage {
+    position: sticky;
+    top: 0;
+    height: 100svh;
+    overflow: hidden;
+    display: grid;
+    place-items: center;
+}
+
+.ae-bg {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* the footage is reference, not spectacle — hold it back so type wins */
+    filter: grayscale(0.35) brightness(0.62);
+}
+.ae-scrim { position: absolute; inset: 0; background: radial-gradient(120% 80% at 50% 50%, transparent 30%, rgba(11, 11, 11, 0.72) 100%); }
+/* the opening resolves to black before the first chapter takes over */
+.ae-fade { position: absolute; inset: 0; background: var(--ae-bg); pointer-events: none; }
+
+.ae-say {
+    position: absolute;
+    width: min(78ch, 84vw);
+    text-align: center;
+    font-family: var(--ae-serif);
+    font-weight: 300;
+    text-transform: uppercase;
+    line-height: 1.45;
+    letter-spacing: 0.06em;
+    transition: opacity 0.4s var(--ae-e);
+}
+.ae-say-1 { font-size: clamp(30px, 5.6vw, 68px); line-height: 1.14; letter-spacing: 0.045em; }
+.ae-say-2 { font-size: clamp(15px, 1.7vw, 22px); width: min(56ch, 82vw); }
+.ae-say-3 { font-size: clamp(15px, 1.7vw, 22px); width: min(48ch, 82vw); }
+
+/* the five numerals, waiting to become the track */
+.ae-numerals {
+    position: absolute;
+    top: calc(50% + clamp(70px, 11vh, 120px));
+    display: flex;
+    gap: clamp(44px, 9vw, 132px);
+    font-family: var(--ae-serif);
+    font-weight: 300;
+    font-size: 21px;
+    color: var(--ae-fg);
+    transition: opacity 0.4s var(--ae-e);
+}
+
+/* ---------- the five stages ---------- */
+
+/* Sticky siblings: each panel pins at the top and the next one rides up over
+   it. No library, no scroll maths — the browser does the whole transition. */
+.ae-panel {
+    position: sticky;
+    top: 0;
+    height: 100svh;
+    overflow: hidden;
+    background: var(--ae-bg);
+    display: grid;
+    place-items: center;
+}
+.ae-panel-row {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    padding: 0 26px;
+    display: grid;
+    grid-template-columns: 3rem 1fr 3rem;
+    align-items: center;
+}
+.ae-panel-num {
+    font-family: var(--ae-serif);
+    font-weight: 300;
+    font-size: 22px;
+    letter-spacing: 0.06em;
+}
+.ae-panel-title {
+    grid-column: 2;
+    text-align: center;
+    font-family: var(--ae-serif);
+    font-weight: 300;
+    font-size: clamp(20px, 2.7vw, 34px);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+.ae-panel-open {
+    grid-column: 3;
+    justify-self: end;
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--ae-line);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+    transition: border-color 0.2s var(--ae-e), background-color 0.2s var(--ae-e);
+}
+.ae-panel-open:hover { border-color: var(--ae-fg); background: rgba(250, 250, 250, 0.08); }
+.ae-panel-open svg { width: 12px; height: 12px; }
+
+/* the caption sits under the fold of the row, quiet */
+.ae-panel-meta {
+    position: absolute;
+    left: 26px;
+    bottom: 96px;
+    z-index: 2;
+    max-width: 34ch;
+    color: var(--ae-dim);
+}
+.ae-panel-meta b { display: block; color: var(--ae-fg); font-weight: 400; margin-bottom: 6px; }
+
+/* ---------- the loop, full size ---------- */
+
+.ae-map {
+    min-height: 100svh;
+    position: relative;
+    display: grid;
+    grid-template-rows: 1fr auto;
+    /* the bottom padding is the mark's parking space — without it the fixed
+       orbit sits on top of this copy */
+    padding: 84px 26px 120px;
+    gap: 32px;
+}
+.ae-map-stage { display: grid; place-items: center; min-height: 0; }
+/* the diagram is square and takes whatever room is left after the caption —
+   sizing it off vh alone clipped it on short windows */
+.ae-orbit-box {
+    aspect-ratio: 1;
+    height: 100%;
+    max-height: min(52vh, 74vw);
+    max-width: 100%;
+}
+.ae-orbit-box.is-overlay { max-height: min(62vh, 80vw); }
+.ae-map-foot {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    gap: 24px;
+}
+.ae-map-foot p { max-width: 46ch; }
+.ae-map-foot b { display: block; color: var(--ae-fg); font-weight: 400; margin-bottom: 6px; }
+
+.ae-chips { display: flex; gap: 6px; }
+.ae-chips span {
+    width: 62px;
+    height: 78px;
+    overflow: hidden;
+    background: #161616;
+    opacity: 0.55;
+    transition: opacity 0.2s var(--ae-e);
+}
+.ae-chips span:hover { opacity: 1; }
+.ae-chips img { width: 100%; height: 100%; object-fit: cover; display: block; }
+
+/* ---------- footer ---------- */
+
+.ae-ft {
+    border-top: 1px solid var(--ae-line);
+    padding: 40px 26px 56px;
+    display: grid;
+    gap: 26px;
+}
+.ae-ft-mark { font-family: var(--ae-serif); font-weight: 300; font-size: 28px; letter-spacing: 0.08em; }
+.ae-ft-links { display: flex; flex-wrap: wrap; gap: 22px; color: var(--ae-dim); }
+.ae-ft-links a:hover { color: var(--ae-fg); }
+
+/* ---------- the mark: progress, logo and table of contents at once ---------- */
+
+.ae-mark {
+    position: fixed;
+    left: 50%;
+    bottom: 26px;
+    transform: translateX(-50%);
+    z-index: 45;
+    padding: 6px;
+    color: var(--ae-fg);
+    transition: opacity 0.4s var(--ae-e);
+}
+.ae-mark svg { width: 62px; height: 62px; display: block; }
+.ae-mark.is-hidden { opacity: 0; pointer-events: none; }
+
+.ae-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 60;
+    background: var(--ae-bg);
+    display: grid;
+    grid-template-rows: auto 1fr;
+    padding: 22px 26px 26px;
+    animation: ae-in 0.4s var(--ae-e);
+}
+@keyframes ae-in { from { opacity: 0; } to { opacity: 1; } }
+.ae-overlay-hd { display: grid; grid-template-columns: 1fr auto; align-items: start; }
+.ae-overlay-stage { display: grid; place-items: center; min-height: 0; }
+.ae-close {
+    width: 34px;
+    height: 34px;
+    border: 1px solid var(--ae-line);
+    border-radius: 50%;
+    display: grid;
+    place-items: center;
+}
+.ae-close:hover { border-color: var(--ae-fg); }
+.ae-close svg { width: 12px; height: 12px; }
+
+/* the orbit itself */
+.ae-orbit { display: block; width: 100%; height: auto; overflow: visible; }
+.ae-orbit-track { stroke: currentColor; opacity: 0.22; fill: none; }
+.ae-orbit-arc { stroke: currentColor; fill: none; stroke-linecap: round; }
+.ae-orbit-inner { fill: none; stroke: currentColor; opacity: 0.5; }
+.ae-orbit-tick { stroke: currentColor; opacity: 0.3; }
+.ae-orbit-tick.is-past { opacity: 1; }
+.ae-orbit-rider { fill: currentColor; }
+.ae-orbit-label {
+    font-family: var(--ae-serif);
+    font-weight: 300;
+    fill: currentColor;
+    opacity: 0.5;
+    dominant-baseline: middle;
+}
+.ae-orbit-name {
+    font-family: var(--ae-sans);
+    font-size: 3.4px;
+    letter-spacing: 0.5px;
+    fill: currentColor;
+    opacity: 0.5;
+    dominant-baseline: middle;
+    text-transform: uppercase;
+}
+.ae-orbit-hit { cursor: pointer; }
+.ae-orbit-hit:hover .ae-orbit-label,
+.ae-orbit-hit:hover .ae-orbit-name { opacity: 1; }
+.ae-orbit-hit:hover .ae-orbit-tick { opacity: 1; }
+
+/* ---------- narrow screens ---------- */
+
+@media (max-width: 720px) {
+    .ae-hd { grid-template-columns: 1fr auto; gap: 16px; padding: 16px; }
+    .ae-hd-sub { display: none; }
+    .ae-panel-row { grid-template-columns: 1.6rem 1fr 2.4rem; padding: 0 16px; }
+    .ae-panel-meta { left: 16px; right: 16px; bottom: 110px; max-width: none; }
+    .ae-map { padding: 76px 16px 16px; }
+    .ae-map-foot { grid-template-columns: 1fr; }
+    .ae-ft { padding: 32px 16px 44px; }
+    .ae-mark svg { width: 52px; height: 52px; }
+}
+
+/* ---------- reduced motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+    .ae *, .ae *::before, .ae *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
+}

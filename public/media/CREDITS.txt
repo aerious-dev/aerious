@@ -1,0 +1,32 @@
+ÆRIOUS — background footage
+===========================
+
+All six clips are from Pexels, used under the Pexels License: free for
+commercial and non-commercial use, no attribution required, modification
+allowed. Credits are recorded here anyway so the provenance is not lost.
+https://www.pexels.com/license/
+
+Each file was re-encoded locally: cropped to 1280x720, converted to
+greyscale, darkened slightly, and rendered as a forward-then-reverse
+"ping-pong" loop so it repeats without a visible cut. Audio removed.
+
+  hero.mp4     Misty Mountain Peaks in Winter
+               https://www.pexels.com/video/misty-mountain-peaks-in-winter-35378062/
+
+  learn.mp4    Microscopic View of Blue Glowing Cells
+               https://www.pexels.com/video/microscopic-view-of-blue-glowing-cells-29851224/
+
+  build.mp4    Close-up View of a Melting Solder
+               https://www.pexels.com/video/close-up-view-of-a-melting-solder-3865789/
+
+  measure.mp4  Close-up of Oscilloscope with Waveform Display
+               https://www.pexels.com/video/close-up-of-oscilloscope-with-waveform-display-34508889/
+
+  ship.mp4     Aerial View of a Snowy Mountain Valley with Fog
+               https://www.pexels.com/video/aerial-view-of-a-snowy-mountain-valley-with-fog-26081684/
+
+  teach.mp4    Colorful Abstract Cells Animation
+               https://www.pexels.com/video/colorful-abstract-cells-animation-34739799/
+
+The .jpg beside each .mp4 is that clip's own first frame, used as the
+video poster.
