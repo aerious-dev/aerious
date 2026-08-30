@@ -63,6 +63,25 @@ Favicons at 16/32/48, `apple-touch-icon` at 180, PWA icons at 192 and 512. All
 opaque — iOS paints black behind a transparent touch icon, and a favicon with no
 background is invisible against half the browser themes out there.
 
+### `workspace/` — Google Workspace
+
+Exactly 320×132, which is what Google requires. Upload in the Admin console
+under **Account → Account settings → Customization**. It replaces the Google
+logo at the top of Gmail, Calendar and Drive for everyone in the organisation.
+
+**Upload `workspace-wordmark-ink-320x132.png`.** The `-white` files are for a
+dark header; the `mark` files put the Æ alone in the box, which is larger on
+screen but does not say the name.
+
+That box is 2.42:1 and the wordmark is 5.93:1, so the wordmark is limited by
+width and reaches only about 40% of the height. Checked at 56, 40 and 28px
+header heights — it stays legible. The files are transparent, so the ink version
+disappears against a dark header; that is what the white pair is for.
+
+Google's own caveats: no animated GIFs, changes can take up to four days to
+appear, the logo shows on desktop only, and Safari cannot upload it — use
+Chrome.
+
 ### `social/`
 
 | | Size | For |

@@ -210,6 +210,23 @@ def main():
     write_png(out("social", "linkedin-cover-1128x191.png"), 1128, 191, INK,
               "ÆRIOUS", BRAND_WEIGHT, TRACKING, PAPER, 0.34)
 
+    # Google Workspace wants exactly 320x132 (Admin console > Account settings
+    # > Customization). It shows at the top of Gmail, Calendar and Drive.
+    #
+    # That box is 2.42:1 and the wordmark is 5.93:1, so the wordmark is limited
+    # by width and can only reach about 40% of the height — which is thin once
+    # Gmail scales the image down into its header. The Æ is 1.33:1 and fills the
+    # height instead. Both are here; the mark reads better small, the wordmark
+    # says the name.
+    #
+    # Transparent, because the Workspace header is light by default and dark
+    # under a dark theme. Ship the ink one unless the header is dark.
+    for tone, color in (("ink", MARK_INK), ("white", PAPER)):
+        write_png(out("workspace", f"workspace-wordmark-{tone}-320x132.png"),
+                  320, 132, None, "ÆRIOUS", BRAND_WEIGHT, TRACKING, color, 0.94)
+        write_png(out("workspace", f"workspace-mark-{tone}-320x132.png"),
+                  320, 132, None, "Æ", BRAND_WEIGHT, 0, color, 0.42)
+
     # Transparent PNGs, for places that will not take an SVG.
     for tone, color in (("white", PAPER), ("black", MARK_INK)):
         write_png(out("png", f"aerious-wordmark-{tone}-2400.png"), 2400, 0, None,
