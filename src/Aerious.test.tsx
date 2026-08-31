@@ -56,7 +56,9 @@ test('the mark opens the system as a labelled map, and Escape closes it', () => 
   expect(screen.queryByRole('dialog')).toBeNull();
   fireEvent.click(screen.getAllByRole('button', { name: 'View the Ærious system' })[0]);
   const dialog = screen.getByRole('dialog', { name: 'Ærious' });
-  expect(dialog.querySelectorAll('.ae-loop-name')).toHaveLength(5);
+  // the nodes carry numerals only; the stage's name is in the middle of the figure
+  expect(dialog.querySelectorAll('.ae-loop-num')).toHaveLength(5);
+  expect(dialog.querySelector('.ae-loop-eyebrow')?.textContent).toContain('Learn');
   fireEvent.keyDown(document, { key: 'Escape' });
   expect(screen.queryByRole('dialog')).toBeNull();
 });

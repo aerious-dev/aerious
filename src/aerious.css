@@ -298,35 +298,39 @@
 .ae-orbit-rider { fill: currentColor; }
 /* ---------- the loop, drawn large ---------- */
 
-/* Hairlines, because the figure is enormous. Everything here is a fraction of
-   a viewBox unit: at 1240 units wide rendered near viewport width, 1.1 is about
-   one device pixel. That thinness is the whole effect — a heavy line at this
-   scale reads as a diagram, a hairline reads as an instrument. */
+/* The whole lattice sits at a fifth of the ink and every line is one unit
+   wide, so a single hairline at full strength is enough to lead the eye. That
+   is what lets the drawing be this large and still feel quiet.
+
+   The numerals overflow the viewBox on purpose — the frame is sized to the
+   arcs, exactly as the reference is, and the labels hang outside it. Both this
+   element and .ae-map-stage keep overflow visible so nothing clips. */
 .ae-loop { display: block; width: 100%; height: 100%; overflow: visible; }
 
-.ae-loop-ghost {
+.ae-loop-base { opacity: 0.2; }
+.ae-loop-base path,
+.ae-loop-base circle {
     fill: none;
     stroke: currentColor;
-    opacity: 0.13;
-    stroke-width: 1.1;
-    stroke-dasharray: 3 7;
+    stroke-width: 1;
 }
-.ae-loop-ghost.is-fine { opacity: 0.09; stroke-dasharray: 2 9; }
+.ae-loop-dotted { stroke-dasharray: 2 2; }
 
-.ae-loop-track { fill: none; stroke: currentColor; opacity: 0.24; stroke-width: 1.1; }
-.ae-loop-arc {
+.ae-loop-live {
     fill: none;
     stroke: currentColor;
-    stroke-width: 1.4;
-    stroke-linecap: round;
+    stroke-width: 1;
     transition: stroke-dashoffset 0.2s var(--ae-e);
 }
 
+/* Hollow, so the line runs on behind a station it has not reached yet, and
+   filled once it has. Unreached dots carry exactly the base ink — anything
+   brighter and five specks lead the eye instead of the line does. */
 .ae-loop-dot {
-    fill: var(--ae-bg);
+    fill: none;
     stroke: currentColor;
-    stroke-width: 1.4;
-    opacity: 0.4;
+    stroke-width: 1;
+    opacity: 0.2;
     transition: opacity 0.4s var(--ae-e), fill 0.4s var(--ae-e);
 }
 .ae-loop-node.is-past .ae-loop-dot { fill: currentColor; opacity: 1; }
@@ -334,39 +338,47 @@
 .ae-loop-num {
     font-family: var(--ae-serif);
     font-weight: 475;
-    font-size: 26px;
+    font-size: 30px;
     fill: currentColor;
-    opacity: 0.45;
-    transition: opacity 0.4s var(--ae-e);
-}
-.ae-loop-name {
-    font-size: 12px;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    fill: currentColor;
-    opacity: 0.3;
+    opacity: 0.2;
     transition: opacity 0.4s var(--ae-e);
 }
 .ae-loop-node.is-past .ae-loop-num { opacity: 1; }
-.ae-loop-node.is-past .ae-loop-name { opacity: 0.62; }
 
-/* The line of type inside the figure. Serif and large: it is the one warm
-   thing in a drawing made entirely of hairlines. */
+.ae-loop-eyebrow {
+    font-size: 15px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    fill: currentColor;
+    opacity: 0.45;
+}
+
+/* The one warm thing in a drawing made entirely of hairlines.
+   30px is the ceiling, not a taste call: the longest line any stage breaks to
+   is 25 characters, which at this size reaches x=1284 — 23 units clear of the
+   numeral hanging off the node at the circle's right edge. Go bigger and the
+   two collide on the Teach stage. */
 .ae-loop-say {
     font-family: var(--ae-serif);
     font-weight: 475;
-    font-size: 42px;
+    font-size: 30px;
     letter-spacing: 0.01em;
     fill: currentColor;
-    opacity: 0.9;
+    opacity: 0.92;
 }
 
-.ae-loop-rider { fill: currentColor; }
+/* These sizes are viewBox units, so they shrink with the frame. On a phone the
+   frame is a quarter of its desktop width, which would take the numerals to
+   about 7px on screen. Scale them back up. */
+@media (max-width: 720px) {
+    .ae-loop-num { font-size: 62px; }
+    .ae-loop-eyebrow { font-size: 30px; letter-spacing: 0.16em; }
+    .ae-loop-say { font-size: 62px; }
+}
 
 @media (prefers-reduced-motion: reduce) {
-    .ae-loop-arc { transition: none; }
+    .ae-loop-live { transition: none; }
 }
-
 
 /* ---------- narrow screens ---------- */
 

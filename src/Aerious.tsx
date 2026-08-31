@@ -147,54 +147,54 @@ function Orbit({ p = 0, variant = 'logo' }: { p?: number; variant?: 'logo' | 'me
 /* the loop, drawn at architectural scale                              */
 /* ------------------------------------------------------------------ */
 
-// Two circles of equal radius, set exactly 2R apart so they meet at a single
-// point rather than overlapping. The figure is the S drawn over the top of one
-// and under the other: one continuous line, five stations, and the pair of
-// circles still legible behind it as the Æ.
+// A lattice, not a diagram. Every arc is radius 300 and every centre sits on
+// one row, so the whole figure is one radius repeated at three positions —
+// nothing here is drawn freehand.
 //
-// Every arc in here is the same radius and every join is tangent, so the line
-// never kinks. That is the whole discipline of the drawing.
+//   centres   x = 304.5, 504.5, 1104.5      all at y = 304.5
+//   extremes  y = 4.5 (top) and 604.5 (bottom)
+//
+// 504.5 and 1104.5 are exactly 2R apart, so those two circles touch at 804.5
+// rather than overlapping. 304.5 is a third centre 200 to the left, and the
+// arcs it throws are the crescents that fill the left of the frame.
 const R = 300;
-const CY = 330;
-const C1 = 504;                 // left centre
-const C2 = C1 + 2 * R;          // right centre — tangent, not overlapping
-const TOUCH = C1 + R;           // where they meet, and the middle station
+const MID = 304.5, TOP = 4.5, BOT = 604.5;
+const A = 304.5, B = 504.5, C = 1104.5;
+const TOUCH = 804.5;
+const LEFT = A - R;      // 4.5
+const RIGHT = C + R;     // 1404.5
 
-// The five stations sit a quarter-turn apart along the line.
-const NODES = STAGES.map((s, i) => {
-  const pt = [
-    { x: C1 - R, y: CY },       // I    left extreme
-    { x: C1, y: CY - R },       // II   over the top
-    { x: TOUCH, y: CY },        // III  the crossing
-    { x: C2, y: CY + R },       // IV   under the bottom
-    { x: C2 + R, y: CY },       // V    right extreme
-  ][i];
-  return { ...s, ...pt };
-});
+// The five stations: left edge, over B, under C, right edge, under B.
+const NODES = STAGES.map((s, i) => ({
+  ...s,
+  ...[
+    { x: LEFT, y: MID, dx: 64, dy: 9, anchor: 'start' as const },
+    { x: B, y: TOP, dx: 0, dy: -30, anchor: 'middle' as const },
+    { x: C, y: BOT, dx: 0, dy: 52, anchor: 'middle' as const },
+    { x: RIGHT, y: MID, dx: -64, dy: 9, anchor: 'end' as const },
+    { x: B, y: BOT, dx: 0, dy: 52, anchor: 'middle' as const },
+  ][i],
+}));
 
-// Over the left circle, then under the right one. Sweep flips at the join.
-const LINE =
-  `M${C1 - R} ${CY} A${R} ${R} 0 0 1 ${TOUCH} ${CY}` +
-  ` A${R} ${R} 0 0 0 ${C2 + R} ${CY}`;
-const LEN = 2 * Math.PI * R;    // two half-turns
+// The line that carries progress: in at the left edge, under the first circle,
+// up to where the two touch, over the second, out at the right edge.
+const JOURNEY =
+  `M${LEFT} ${MID} A${R} ${R} 0 0 0 ${A} ${BOT} L${B} ${BOT}` +
+  ` A${R} ${R} 0 0 0 ${TOUCH} ${MID} A${R} ${R} 0 0 1 ${C} ${TOP}` +
+  ` A${R} ${R} 0 0 1 ${RIGHT} ${MID}`;
+const LEN = (Math.PI * R * 2) + (B - A);   // four quarter-turns and the flat
 
-// The same S drawn the other way — under the left circle, over the right. It
-// adds no new vocabulary and closes the two arcs into a pair of lenses, which
-// is where the drawing gets its depth.
-const MIRROR =
-  `M${C1 - R} ${CY} A${R} ${R} 0 0 0 ${TOUCH} ${CY}` +
-  ` A${R} ${R} 0 0 1 ${C2 + R} ${CY}`;
-
-// Where the travelling dot is, walked along the same construction.
-const walk = (u: number) => {
-  const t = u * 2;                                   // which half we are in
-  if (t <= 1) {
-    const a = Math.PI - t * Math.PI;                 // left circle, over the top
-    return { x: C1 + R * Math.cos(a), y: CY - R * Math.sin(a) };
-  }
-  const a = Math.PI - (t - 1) * Math.PI;             // right circle, under
-  return { x: C2 + R * Math.cos(a), y: CY + R * Math.sin(a) };
-};
+// Everything else the same three centres throw. No stages hang off these —
+// they are the structure the journey is cut out of.
+const LATTICE = [
+  `M${B} ${TOP} A${R} ${R} 0 0 1 ${TOUCH} ${MID} A${R} ${R} 0 0 0 ${C} ${BOT}`,
+  `M${RIGHT} ${MID} A${R} ${R} 0 0 1 ${C} ${BOT}`,
+  `M${B - R} ${MID} A${R} ${R} 0 0 0 ${B} ${BOT}`,
+];
+const DOTTED = [
+  `M${B - R} ${MID} A${R} ${R} 0 0 1 ${B} ${TOP}`,
+  `M${LEFT} ${MID} A${R} ${R} 0 0 1 ${A} ${TOP} L${B} ${TOP}`,
+];
 
 // The anchors are sentences, not two-word slogans, so they have to break.
 // Split on the word boundary nearest the middle: balanced lines, no hyphens.
@@ -209,56 +209,56 @@ const twoLines = (t: string) => {
 };
 
 function Loop({ p, active }: { p: number; active: number }) {
-  const rider = walk(clamp(p));
+  const q = clamp(p);
   return (
-    <svg className="ae-loop" viewBox="40 -80 1530 860" aria-hidden="true">
-      {/* the two circles whole, dotted: the Æ standing behind the journey */}
-      <circle className="ae-loop-ghost" cx={C1} cy={CY} r={R} />
-      <circle className="ae-loop-ghost" cx={C2} cy={CY} r={R} />
-      <circle className="ae-loop-ghost is-fine" cx={TOUCH} cy={CY} r={R / 3} />
-      <path className="ae-loop-ghost" d={MIRROR} />
+    <svg className="ae-loop" viewBox="0 0 1410 610" aria-hidden="true">
+      {/* Everything is drawn once, faintly, and once more at full strength with
+          only the travelled part revealed. The whole lattice sits at a fifth of
+          the ink so the line that matters can be a hairline and still lead. */}
+      <g className="ae-loop-base">
+        {DOTTED.map((d) => (
+          <path key={d} className="ae-loop-dotted" d={d} />
+        ))}
+        <circle className="ae-loop-dotted" cx={TOUCH - 100} cy={MID} r={100} />
+        {LATTICE.map((d) => (
+          <path key={d} d={d} />
+        ))}
+        <path d={JOURNEY} />
+      </g>
 
-      <path className="ae-loop-track" d={LINE} />
       <path
-        className="ae-loop-arc"
-        d={LINE}
+        className="ae-loop-live"
+        d={JOURNEY}
         strokeDasharray={LEN}
-        strokeDashoffset={LEN * (1 - clamp(p))}
+        strokeDashoffset={LEN * (1 - q)}
       />
 
       {NODES.map((n, i) => {
-        const reached = p >= i / (STAGES.length - 1) - 0.001;
-        // labels lean away from the line: outward at the ends, above the crest,
-        // below the trough, so nothing ever sits on top of the stroke
-        const above = n.y < CY;
-        const side = n.x < C1 ? -1 : n.x > C2 ? 1 : 0;
-        const lx = n.x + side * 46;
-        const ly = n.y + (side !== 0 ? -34 : above ? -52 : 74);
-        const anchor = side === 1 ? 'start' : side === -1 ? 'end' : 'middle';
+        const reached = q >= i / (STAGES.length - 1) - 0.001;
         return (
           <g key={n.n} className={`ae-loop-node${reached ? ' is-past' : ''}`}>
-            <circle className="ae-loop-dot" cx={n.x} cy={n.y} r={6} />
-            <text className="ae-loop-num" x={lx} y={ly} textAnchor={anchor}>
+            <circle className="ae-loop-dot" cx={n.x} cy={n.y} r={5.5} />
+            <text className="ae-loop-num" x={n.x + n.dx} y={n.y + n.dy} textAnchor={n.anchor}>
               {n.n}
-            </text>
-            <text className="ae-loop-name" x={lx} y={ly + 26} textAnchor={anchor}>
-              {n.title}
             </text>
           </g>
         );
       })}
 
-      {/* the stage you are on, set in the hollow the line leaves open inside
-          the right circle — above its arc, which dives under */}
-      <text className="ae-loop-say" x={C2} y={CY - 74} textAnchor="middle">
+      {/* The stage you are on, in the hollow of the second circle. The nodes
+          carry numerals only, as the reference does, so this is where the
+          numeral gets a name. Both lines have to stay inside R of that centre
+          or they run into the node sitting on the edge. */}
+      <text className="ae-loop-eyebrow" x={C} y={MID - 66} textAnchor="middle">
+        {STAGES[active].n} · {STAGES[active].title}
+      </text>
+      <text className="ae-loop-say" x={C} y={MID - 8} textAnchor="middle">
         {twoLines(STAGES[active].anchor).map((line, i) => (
-          <tspan key={line} x={C2} dy={i === 0 ? 0 : 52}>
+          <tspan key={line} x={C} dy={i === 0 ? 0 : 38}>
             {line}
           </tspan>
         ))}
       </text>
-
-      <circle className="ae-loop-rider" cx={rider.x} cy={rider.y} r={10} />
     </svg>
   );
 }
