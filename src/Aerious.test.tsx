@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { Aerious, figureAt } from './Aerious';
+import { Aerious, figureAt, inkAt } from './Aerious';
 
 const renderPage = () => render(<Aerious />);
 
@@ -135,4 +135,15 @@ describe('the figure growing out of its resting place', () => {
     expect(figureAt(1, 1200, 750, 0).opacity).toBe(1);
     expect(figureAt(1, 1200, 750, 1).opacity).toBe(0);
   });
+});
+
+// The faint track is a fifth of the ink at full size, which is right on a black
+// frame and invisible on a 132px mark laid over video. Sampling the reference's
+// own small mark puts it around 60%.
+test('the track firms up as the figure shrinks', () => {
+  expect(inkAt(1)).toBeCloseTo(0.2, 6);   // full frame, on black
+  expect(inkAt(0)).toBeCloseTo(0.6, 6);   // parked at the foot, over footage
+  for (let g = 0; g <= 1.0001; g += 0.1) {
+    expect(inkAt(Math.min(1, g))).toBeLessThanOrEqual(inkAt(Math.max(0, g - 0.1)));
+  }
 });

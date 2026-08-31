@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import type { CSSProperties } from 'react';
 import './aerious.css';
 
 // Customer-facing address. admin@ is the Workspace owner account and should
@@ -131,6 +132,13 @@ const REST_GAP = 26;               // and how far its underside clears the floor
 // scale is applied to the point first, about the element's own centre, and the
 // translations that follow are in unscaled pixels — so the resting offset is
 // exact rather than divided by the scale.
+// Ink is not one value. A fifth of it is right for a drawing that fills a black
+// frame — that is what the reference uses there — and far too little for a
+// 132px mark sitting over footage. Sampling the reference's own small mark off
+// a recording puts its strokes at 60–70% against their background, so the faint
+// track firms up as the figure shrinks.
+export const inkAt = (grown: number) => 0.6 - 0.4 * clamp(grown);
+
 export function figureAt(grown: number, vw: number, vh: number, leave = 0) {
   const w = Math.min(1180, vw * 0.94);          // width once it has arrived
   const min = REST_W / w;
@@ -204,8 +212,14 @@ function Loop({
   // At the foot of the screen the figure is 132px wide; numerals and a sentence
   // would be specks. They arrive with the size.
   const labels = clamp((grown - 0.55) / 0.35);
+  const ink = inkAt(grown);
   return (
-    <svg className="ae-loop" viewBox="0 0 1410 610" aria-hidden="true">
+    <svg
+      className="ae-loop"
+      viewBox="0 0 1410 610"
+      aria-hidden="true"
+      style={{ '--ae-ink': ink.toFixed(3) } as CSSProperties}
+    >
       {/* The track: every stroke, laid down once at a fifth of the ink. The
           drawing is whole from the first frame — nothing is waiting to appear. */}
       <g className="ae-loop-track">

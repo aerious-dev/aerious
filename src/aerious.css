@@ -314,7 +314,7 @@
    of the ink; the scrub carries them again at full strength, each fading in as
    it is reached. Nothing draws on — the figure is complete from the first
    frame and fills in, which is what keeps it from reading as a progress bar. */
-.ae-loop-track { opacity: 0.2; }
+.ae-loop-track { opacity: var(--ae-ink, 0.2); }
 /* One device pixel at every size. The figure runs from 132px wide at the foot
    of the screen to the full frame, and a stroke measured in viewBox units would
    be a tenth of a pixel at the small end and vanish. At full size this lands on
@@ -340,7 +340,7 @@
 .ae-loop-dot {
     fill: var(--ae-bg);
     stroke: currentColor;
-    opacity: 0.2;
+    opacity: var(--ae-ink, 0.2);
     transition: opacity 0.4s var(--ae-e);
 }
 .ae-loop-node.is-past .ae-loop-dot { opacity: 1; }
@@ -350,7 +350,7 @@
     font-weight: 475;
     font-size: 30px;
     fill: currentColor;
-    opacity: 0.2;
+    opacity: var(--ae-ink, 0.2);
     transition: opacity 0.4s var(--ae-e);
 }
 .ae-loop-node.is-past .ae-loop-num { opacity: 1; }
