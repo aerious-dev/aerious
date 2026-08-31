@@ -134,10 +134,27 @@ const REST_GAP = 26;               // and how far its underside clears the floor
 // exact rather than divided by the scale.
 // Ink is not one value. A fifth of it is right for a drawing that fills a black
 // frame — that is what the reference uses there — and far too little for a
-// 132px mark sitting over footage. Sampling the reference's own small mark off
-// a recording puts its strokes at 60–70% against their background, so the faint
-// track firms up as the figure shrinks.
-export const inkAt = (grown: number) => 0.6 - 0.4 * clamp(grown);
+// 132px mark sitting over footage.
+//
+// 0.62 is measured, not chosen. Sampling the reference's own small mark off a
+// recording puts its strokes at 60–62% of the range above their background, on
+// dark frames and bright ones alike. Composited over the pool the parked mark
+// lays down (see .ae-mark in the stylesheet) this value reproduces that on both.
+export const inkAt = (grown: number) => 0.62 - 0.42 * clamp(grown);
+
+// A dash written in viewBox units stays 2 units long whatever the figure's size
+// on screen: 2px on the full frame, and a fifth of a pixel on the 132px mark,
+// where it stops being a dotted line and becomes a grey smear. That smear is
+// what made the parked mark look washed out. So the dash is measured in device
+// pixels instead — `unit` is viewBox units per pixel.
+//
+// And the gap opens with the figure. Parked, every line is solid, the way the
+// reference's own small mark is; the crescents only break into dots once there
+// is room to tell dots apart.
+export function dashAt(unit: number, grown: number) {
+  const gap = 2 * unit * clamp(grown);
+  return gap > 0.05 ? `${(2 * unit).toFixed(2)} ${gap.toFixed(2)}` : undefined;
+}
 
 export function figureAt(grown: number, vw: number, vh: number, leave = 0) {
   const w = Math.min(1180, vw * 0.94);          // width once it has arrived
@@ -203,16 +220,20 @@ function Loop({
   p,
   active,
   grown = 1,
+  unit = 1,
 }: {
   p: number;
   active: number;
   grown?: number;
+  /** viewBox units per device pixel, so dashes can be sized in real pixels */
+  unit?: number;
 }) {
   const q = clamp(p);
   // At the foot of the screen the figure is 132px wide; numerals and a sentence
   // would be specks. They arrive with the size.
   const labels = clamp((grown - 0.55) / 0.35);
   const ink = inkAt(grown);
+  const dash = dashAt(unit, grown);
   return (
     <svg
       className="ae-loop"
@@ -223,9 +244,9 @@ function Loop({
       {/* The track: every stroke, laid down once at a fifth of the ink. The
           drawing is whole from the first frame — nothing is waiting to appear. */}
       <g className="ae-loop-track">
-        <circle className="ae-loop-dotted" cx={TOUCH - 100} cy={MID} r={100} />
+        <circle cx={TOUCH - 100} cy={MID} r={100} strokeDasharray={dash} />
         {DOTTED.map((d) => (
-          <path key={d} className="ae-loop-dotted" d={d} />
+          <path key={d} d={d} strokeDasharray={dash} />
         ))}
         {STROKES.slice(1).map((d) => (
           <path key={d} d={d} />
@@ -514,7 +535,7 @@ export function Aerious() {
         aria-label="View the Ærious system"
         style={{ width: figure.w, transform: figure.transform, opacity: figure.opacity }}
       >
-        <Loop p={pLoop} active={idx} grown={grown} />
+        <Loop p={pLoop} active={idx} grown={grown} unit={1410 / (figure.w * figure.scale)} />
       </button>
 
       {mapOpen && (

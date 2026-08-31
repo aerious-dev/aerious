@@ -265,6 +265,23 @@
 }
 /* once it has grown it is the figure, not a button */
 .ae-mark.is-grown { cursor: default; }
+
+/* Parked, the mark sits over whatever the chapter's footage happens to be, and
+   some of those frames are bright fog — a hairline of white has no contrast to
+   spare against those. The reference never has this problem because its footage
+   is dark wherever its mark sits; ours is not, so the mark brings its own
+   ground: a soft pool of the page's black, and a dark edge on the strokes.
+   Both stop once it grows, where the ground is our own black already. */
+.ae-mark:not(.is-grown)::before {
+    content: '';
+    position: absolute;
+    inset: -70% -18%;
+    z-index: -1;
+    background: radial-gradient(closest-side, rgba(11, 11, 11, 0.86), rgba(11, 11, 11, 0));
+}
+/* No drop-shadow on the strokes: a 1px hairline given a 6px dark blur is
+   mostly blur, and the line reads as dark. The pool above is the ground; the
+   line just needs to be white on it. */
 .ae-mark svg { width: 100%; height: auto; display: block; }
 .ae-mark.is-hidden { opacity: 0 !important; pointer-events: none; }
 
@@ -332,7 +349,6 @@
     fill: none;
     stroke: currentColor;
 }
-.ae-loop-dotted { stroke-dasharray: 2 2; }
 .ae-loop-scrub path { transition: opacity 0.4s var(--ae-e); }
 
 /* Dark-filled, so the strokes behind a station stop at its edge rather than

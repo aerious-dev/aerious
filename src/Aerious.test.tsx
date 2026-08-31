@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { Aerious, figureAt, inkAt } from './Aerious';
+import { Aerious, dashAt, figureAt, inkAt } from './Aerious';
 
 const renderPage = () => render(<Aerious />);
 
@@ -141,9 +141,39 @@ describe('the figure growing out of its resting place', () => {
 // frame and invisible on a 132px mark laid over video. Sampling the reference's
 // own small mark puts it around 60%.
 test('the track firms up as the figure shrinks', () => {
-  expect(inkAt(1)).toBeCloseTo(0.2, 6);   // full frame, on black
-  expect(inkAt(0)).toBeCloseTo(0.6, 6);   // parked at the foot, over footage
+  expect(inkAt(1)).toBeCloseTo(0.2, 6);   // full frame, on our own black
+  expect(inkAt(0)).toBeCloseTo(0.62, 6);  // parked, matching the reference's measured 60–62%
   for (let g = 0; g <= 1.0001; g += 0.1) {
     expect(inkAt(Math.min(1, g))).toBeLessThanOrEqual(inkAt(Math.max(0, g - 0.1)));
   }
+});
+
+// The dash is the thing that broke: written in viewBox units it measured a
+// fifth of a pixel on the parked mark and turned the crescents into a smear.
+describe('the dotted crescents', () => {
+  test('are solid while the figure is parked', () => {
+    expect(dashAt(1410 / 132, 0)).toBeUndefined();
+  });
+
+  test('stay 2 device pixels long at any size', () => {
+    for (const px of [132, 400, 1180]) {
+      const unit = 1410 / px;
+      const [on, off] = dashAt(unit, 1)!.split(' ').map(Number);
+      // 2 decimal places, because the attribute is rounded to keep it short —
+      // still tight enough to catch a dash left in viewBox units, which would
+      // be out by an order of magnitude at the parked size
+      expect(on / unit).toBeCloseTo(2, 2);   // 2px of dash
+      expect(off / unit).toBeCloseTo(2, 2);  // and 2px of gap
+    }
+  });
+
+  test('open up as the figure grows, never the other way', () => {
+    const unit = 1410 / 600;
+    let last = 0;
+    for (let g = 0.1; g <= 1.0001; g += 0.1) {
+      const gap = Number(dashAt(unit, Math.min(1, g))!.split(' ')[1]);
+      expect(gap).toBeGreaterThan(last);
+      last = gap;
+    }
+  });
 });
