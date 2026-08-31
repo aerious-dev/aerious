@@ -198,8 +198,12 @@
 
 /* ---------- the loop, full size ---------- */
 
+/* Tall on purpose: one screen for the figure to arrive in, then one per stage.
+   That length is the scroll the five stages need to run through a second time
+   at full size — the figure holds still (the stage below is sticky) while the
+   sentence in the middle of it changes and the strokes light in turn. */
 .ae-map {
-    min-height: 100svh;
+    min-height: 560svh;
     position: relative;
     display: grid;
     grid-template-rows: 1fr auto;
@@ -210,7 +214,16 @@
     padding: 84px 14px 120px;
     gap: 32px;
 }
-.ae-map-stage { display: grid; place-items: center; min-height: 0; overflow: visible; }
+/* Sticky, so the room kept for the figure stays put in the viewport while the
+   section scrolls past it. The figure is fixed and follows this box, so it
+   holds still here and only rides away when the sticky lets go at the end. */
+.ae-map-stage {
+    position: sticky;
+    top: 0;
+    height: 100svh;
+    align-self: start;
+    overflow: visible;
+}
 .ae-map-foot {
     display: grid;
     grid-template-columns: 1fr auto;
@@ -272,11 +285,12 @@
    is dark wherever its mark sits; ours is not, so the mark brings its own
    ground: a soft pool of the page's black, and a dark edge on the strokes.
    Both stop once it grows, where the ground is our own black already. */
-.ae-mark:not(.is-grown)::before {
+.ae-mark::before {
     content: '';
     position: absolute;
     inset: -70% -18%;
     z-index: -1;
+    opacity: var(--ae-pool, 1);
     background: radial-gradient(closest-side, rgba(11, 11, 11, 0.86), rgba(11, 11, 11, 0));
 }
 /* No drop-shadow on the strokes: a 1px hairline given a 6px dark blur is
@@ -331,7 +345,13 @@
    of the ink; the scrub carries them again at full strength, each fading in as
    it is reached. Nothing draws on — the figure is complete from the first
    frame and fills in, which is what keeps it from reading as a progress bar. */
-.ae-loop-track { opacity: var(--ae-ink, 0.2); }
+/* A fifth of the ink, at every size. The gap between this and a lit stroke is
+   the whole point of the drawing — measured off the reference's own small mark,
+   its unlit lines sit at 9–20% against their background and its lit ones at
+   87–96%, five to ten times brighter. Lift the track to make it legible and
+   that gap closes and the progress stops reading. Legibility is the pool's job
+   instead, below. */
+.ae-loop-track { opacity: 0.2; }
 /* One device pixel at every size. The figure runs from 132px wide at the foot
    of the screen to the full frame, and a stroke measured in viewBox units would
    be a tenth of a pixel at the small end and vanish. At full size this lands on
@@ -356,7 +376,7 @@
 .ae-loop-dot {
     fill: var(--ae-bg);
     stroke: currentColor;
-    opacity: var(--ae-ink, 0.2);
+    opacity: 0.2;
     transition: opacity 0.4s var(--ae-e);
 }
 .ae-loop-node.is-past .ae-loop-dot { opacity: 1; }
@@ -366,7 +386,7 @@
     font-weight: 475;
     font-size: 30px;
     fill: currentColor;
-    opacity: var(--ae-ink, 0.2);
+    opacity: 0.2;
     transition: opacity 0.4s var(--ae-e);
 }
 .ae-loop-node.is-past .ae-loop-num { opacity: 1; }

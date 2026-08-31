@@ -132,16 +132,6 @@ const REST_GAP = 26;               // and how far its underside clears the floor
 // scale is applied to the point first, about the element's own centre, and the
 // translations that follow are in unscaled pixels — so the resting offset is
 // exact rather than divided by the scale.
-// Ink is not one value. A fifth of it is right for a drawing that fills a black
-// frame — that is what the reference uses there — and far too little for a
-// 132px mark sitting over footage.
-//
-// 0.62 is measured, not chosen. Sampling the reference's own small mark off a
-// recording puts its strokes at 60–62% of the range above their background, on
-// dark frames and bright ones alike. Composited over the pool the parked mark
-// lays down (see .ae-mark in the stylesheet) this value reproduces that on both.
-export const inkAt = (grown: number) => 0.62 - 0.42 * clamp(grown);
-
 // A dash written in viewBox units stays 2 units long whatever the figure's size
 // on screen: 2px on the full frame, and a fifth of a pixel on the 132px mark,
 // where it stops being a dotted line and becomes a grey smear. That smear is
@@ -156,19 +146,39 @@ export function dashAt(unit: number, grown: number) {
   return gap > 0.05 ? `${(2 * unit).toFixed(2)} ${gap.toFixed(2)}` : undefined;
 }
 
-export function figureAt(grown: number, vw: number, vh: number, leave = 0) {
+// Which stage is showing, and how far the lighting has run.
+//
+// Through the chapters both follow the panels. Once the diagram has arrived it
+// holds still — the section under it is sticky and tall — and the five stages
+// run through a second time at full size, driven by the scroll through that
+// section rather than by the panels, which have long since finished.
+//
+// Lighting takes whichever of the two is further on, so a stroke that has lit
+// never goes dark again on the way through.
+export function stageAt(pTrack: number, pMap: number, pThrough: number) {
+  const n = STAGES.length;
+  const arrived = pMap > 0.99;
+  const idx = arrived
+    ? Math.min(n - 1, Math.floor(clamp(pThrough) * n))
+    : Math.min(n - 1, Math.round(clamp(pTrack) * (n - 1)));
+  return { idx, pLoop: Math.max(clamp(pTrack) * 0.8, clamp(pThrough)) };
+}
+
+export function figureAt(grown: number, vw: number, vh: number, home = 0) {
   const w = Math.min(1180, vw * 0.94);          // width once it has arrived
   const min = REST_W / w;
   const s = min + (1 - min) * grown;
+  // parked: measured off the floor, so it clears it by REST_GAP at any viewport
   const rest = vh / 2 - REST_GAP - REST_W / FIGURE_RATIO / 2;
-  const home = -vh * 0.07;                      // a little above centre, so the caption clears
+  // arrived: wherever the section is keeping room for it. Once grown is 1 the
+  // figure is pinned to that room rather than to the screen, so scrolling on
+  // carries it up and away instead of leaving it hanging over the footer.
   const y = rest * (1 - grown) + home * grown;
   return {
     w,
     scale: s,
     y,
     transform: `translate(-50%, -50%) translateY(${y.toFixed(1)}px) scale(${s.toFixed(4)})`,
-    opacity: 1 - leave,
   };
 }
 
@@ -232,15 +242,9 @@ function Loop({
   // At the foot of the screen the figure is 132px wide; numerals and a sentence
   // would be specks. They arrive with the size.
   const labels = clamp((grown - 0.55) / 0.35);
-  const ink = inkAt(grown);
   const dash = dashAt(unit, grown);
   return (
-    <svg
-      className="ae-loop"
-      viewBox="0 0 1410 610"
-      aria-hidden="true"
-      style={{ '--ae-ink': ink.toFixed(3) } as CSSProperties}
-    >
+    <svg className="ae-loop" viewBox="0 0 1410 610" aria-hidden="true">
       {/* The track: every stroke, laid down once at a fifth of the ink. The
           drawing is whole from the first frame — nothing is waiting to appear. */}
       <g className="ae-loop-track">
@@ -346,14 +350,21 @@ export function Aerious() {
   const openRef = useRef<HTMLElement>(null);
   const trackRef = useRef<HTMLElement>(null);
   const mapRef = useRef<HTMLElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
 
   const [q, setQ] = useState(0); // through the opening
   const [pTrack, setPTrack] = useState(0); // through the five stages
   const [pMap, setPMap] = useState(0); // the diagram arriving
   const [mapOpen, setMapOpen] = useState(false);
   const [vp, setVp] = useState({ w: 1280, h: 800 });
-  // how far the diagram has slid up past the fold — used to take it away again
-  const [pLeave, setPLeave] = useState(0);
+  // Where the figure should sit once it has arrived, measured from the centre
+  // of the viewport. It tracks the room the section keeps for it, so that after
+  // the growing is done the figure scrolls away with the section instead of
+  // staying pinned to the screen and riding over the footer.
+  const [home, setHome] = useState(0);
+  // and how far through that section we are, once it has arrived — the diagram
+  // holds still and the five stages run through it a second time, at full size
+  const [pThrough, setPThrough] = useState(0);
 
   useEffect(() => {
     let raf = 0;
@@ -372,16 +383,17 @@ export function Aerious() {
       // ring would start life already closed.
       setVp({ w: window.innerWidth, h: vh });
       const m = mapRef.current;
+      const stage = stageRef.current;
       if (m && m.offsetHeight > 0) {
-        const r = m.getBoundingClientRect();
-        setPMap(clamp((vh - r.top) / vh));
-        // and let it go once the section starts leaving, or it would sit on
-        // top of the footer
-        setPLeave(clamp((vh - r.bottom) / (vh * 0.55)));
+        setPMap(clamp((vh - m.getBoundingClientRect().top) / vh));
       } else {
         setPMap(0);
-        setPLeave(0);
       }
+      if (stage) {
+        const r = stage.getBoundingClientRect();
+        setHome(r.top + r.height / 2 - vh / 2);
+      }
+      setPThrough(span(mapRef.current));
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(read);
@@ -405,15 +417,12 @@ export function Aerious() {
     return () => document.removeEventListener('keydown', onKey);
   }, [mapOpen]);
 
-  // which of the five is pinned right now
-  const idx = Math.min(STAGES.length - 1, Math.round(pTrack * (STAGES.length - 1)));
-  // the last node sits at 4/5, so the ring only closes on the diagram
-  const pLoop = Math.min(1, pTrack * 0.8 + pMap * 0.2);
+  const { idx, pLoop } = stageAt(pTrack, pMap, pThrough);
 
   // Eased, because a linear scale from a twelfth to full size reads as a lurch
   // at the small end.
   const grown = pMap * pMap * (3 - 2 * pMap);
-  const figure = figureAt(grown, vp.w, vp.h, pLeave);
+  const figure = figureAt(grown, vp.w, vp.h, home);
 
   // The opening hands one statement to the next. Exactly one may be lit, with a
   // dark gap between them: the three sit on top of each other, so any overlap
@@ -491,7 +500,7 @@ export function Aerious() {
       <section className="ae-map" ref={mapRef}>
         {/* the figure itself is the fixed layer below — this only holds its
             room open so the caption has somewhere to sit */}
-        <div className="ae-map-stage" aria-hidden="true" />
+        <div className="ae-map-stage" ref={stageRef} aria-hidden="true" />
         <div className="ae-map-foot">
           <p className="ae-body">
             <b className="ae-cap">Ærious — from aer, Latin for air</b>
@@ -530,10 +539,18 @@ export function Aerious() {
           resting position is exact at any viewport. */}
       <button
         type="button"
-        className={`ae-mark${mapOpen ? ' is-hidden' : ''}${grown > 0.02 ? ' is-grown' : ''}`}
+        className={`ae-mark${mapOpen ? ' is-hidden' : ''}${grown > 0.5 ? ' is-grown' : ''}`}
         onClick={() => grown < 0.5 && setMapOpen(true)}
         aria-label="View the Ærious system"
-        style={{ width: figure.w, transform: figure.transform, opacity: figure.opacity }}
+        style={
+          {
+            width: figure.w,
+            transform: figure.transform,
+            // the ground fades out as the figure grows onto our own black,
+            // rather than snapping off the moment it starts to move
+            '--ae-pool': (1 - clamp(grown * 1.6)).toFixed(3),
+          } as CSSProperties
+        }
       >
         <Loop p={pLoop} active={idx} grown={grown} unit={1410 / (figure.w * figure.scale)} />
       </button>

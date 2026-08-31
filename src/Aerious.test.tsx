@@ -1,5 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { Aerious, dashAt, figureAt, inkAt } from './Aerious';
+import { Aerious, dashAt, figureAt, stageAt } from './Aerious';
 
 const renderPage = () => render(<Aerious />);
 
@@ -111,19 +111,18 @@ describe('the figure growing out of its resting place', () => {
     expect(vh - bottom).toBeCloseTo(26, 6);
   });
 
-  test.each(cases)('arrives at full width, above centre, at $vw×$vh', ({ vw, vh }) => {
-    const f = figureAt(1, vw, vh);
+  test.each(cases)('arrives at full width, on the section, at $vw×$vh', ({ vw, vh }) => {
+    const f = figureAt(1, vw, vh, 0);
     expect(f.scale).toBeCloseTo(1, 6);
     expect(f.w).toBeCloseTo(Math.min(1180, vw * 0.94), 6);
-    expect(f.y).toBeLessThan(0); // raised, so the caption underneath clears
-    expect(Math.abs(f.y)).toBeLessThan(vh / 4); // but not off the top
+    expect(f.y).toBeCloseTo(0, 6); // sitting exactly on the room kept for it
   });
 
   test('grows and rises without ever reversing', () => {
     let lastScale = -1;
     let lastY = Infinity;
     for (let g = 0; g <= 1.0001; g += 0.05) {
-      const f = figureAt(Math.min(1, g), 1200, 750);
+      const f = figureAt(Math.min(1, g), 1200, 750, 0);
       expect(f.scale).toBeGreaterThan(lastScale);
       expect(f.y).toBeLessThan(lastY);
       lastScale = f.scale;
@@ -131,22 +130,21 @@ describe('the figure growing out of its resting place', () => {
     }
   });
 
-  test('fades out as the section leaves, so it never sits on the footer', () => {
-    expect(figureAt(1, 1200, 750, 0).opacity).toBe(1);
-    expect(figureAt(1, 1200, 750, 1).opacity).toBe(0);
+  // Once it has arrived the figure is pinned to the room the section keeps for
+  // it, not to the screen. Scroll on and that room rises, so the figure rises
+  // with it instead of hanging over the footer.
+  test('rides the section away once it has arrived', () => {
+    const centred = figureAt(1, 1200, 750, 0);
+    const sectionRisen = figureAt(1, 1200, 750, -300);
+    expect(sectionRisen.y).toBeCloseTo(centred.y - 300, 6);
+  });
+
+  // While it is still parked, where the section happens to be must not move it.
+  test('ignores the section while it is still parked', () => {
+    expect(figureAt(0, 1200, 750, 0).y).toBeCloseTo(figureAt(0, 1200, 750, -900).y, 6);
   });
 });
 
-// The faint track is a fifth of the ink at full size, which is right on a black
-// frame and invisible on a 132px mark laid over video. Sampling the reference's
-// own small mark puts it around 60%.
-test('the track firms up as the figure shrinks', () => {
-  expect(inkAt(1)).toBeCloseTo(0.2, 6);   // full frame, on our own black
-  expect(inkAt(0)).toBeCloseTo(0.62, 6);  // parked, matching the reference's measured 60–62%
-  for (let g = 0; g <= 1.0001; g += 0.1) {
-    expect(inkAt(Math.min(1, g))).toBeLessThanOrEqual(inkAt(Math.max(0, g - 0.1)));
-  }
-});
 
 // The dash is the thing that broke: written in viewBox units it measured a
 // fifth of a pixel on the parked mark and turned the crescents into a smear.
@@ -175,5 +173,40 @@ describe('the dotted crescents', () => {
       expect(gap).toBeGreaterThan(last);
       last = gap;
     }
+  });
+});
+
+// The point of the tall diagram section: once the figure has arrived and is
+// holding still, scrolling on has to keep doing something — the sentence in the
+// middle moves through the five stages and the strokes go on lighting. Without
+// this the figure just sits there and the scroll feels broken.
+describe('scrolling on through the diagram', () => {
+  const through = (t: number) => stageAt(1, 1, t);
+
+  test('walks all five stages from start to end', () => {
+    const seen = [0, 0.25, 0.45, 0.65, 0.85, 0.99].map((t) => through(t).idx);
+    expect(seen).toEqual([0, 1, 2, 3, 4, 4]);
+  });
+
+  test('keeps lighting as it goes, and never unlights', () => {
+    let last = -1;
+    for (let t = 0; t <= 1.0001; t += 0.05) {
+      const { pLoop } = through(Math.min(1, t));
+      expect(pLoop).toBeGreaterThanOrEqual(last);
+      last = pLoop;
+    }
+    expect(through(1).pLoop).toBeCloseTo(1, 6);
+  });
+
+  test('hands over without the lighting dropping back', () => {
+    const endOfChapters = stageAt(1, 0.5, 0).pLoop;      // panels done, diagram arriving
+    const startOfDiagram = stageAt(1, 1, 0).pLoop;       // diagram arrived, not scrolled yet
+    expect(startOfDiagram).toBeGreaterThanOrEqual(endOfChapters);
+  });
+
+  test('still follows the panels before the diagram arrives', () => {
+    expect(stageAt(0, 0, 0).idx).toBe(0);
+    expect(stageAt(0.5, 0, 0).idx).toBe(2);
+    expect(stageAt(1, 0.5, 0).idx).toBe(4);
   });
 });
