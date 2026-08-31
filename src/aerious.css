@@ -251,18 +251,22 @@
 
 /* ---------- the mark: progress, logo and table of contents at once ---------- */
 
+/* Anchored at the centre of the viewport; the inline transform carries it down
+   to its resting place at the foot and back up again. Nothing here transitions
+   — the movement is scrubbed by scroll, and a transition would lag behind the
+   finger. */
 .ae-mark {
     position: fixed;
     left: 50%;
-    bottom: 26px;
-    transform: translateX(-50%);
+    top: 50%;
     z-index: 45;
-    padding: 6px;
     color: var(--ae-fg);
-    transition: opacity 0.4s var(--ae-e);
+    will-change: transform;
 }
-.ae-mark svg { width: 132px; height: auto; display: block; }
-.ae-mark.is-hidden { opacity: 0; pointer-events: none; }
+/* once it has grown it is the figure, not a button */
+.ae-mark.is-grown { cursor: default; }
+.ae-mark svg { width: 100%; height: auto; display: block; }
+.ae-mark.is-hidden { opacity: 0 !important; pointer-events: none; }
 
 .ae-overlay {
     position: fixed;
@@ -292,24 +296,8 @@
 .ae-orbit { display: block; width: 100%; height: auto; overflow: visible; }
 .ae-orbit-track { stroke: currentColor; opacity: 0.22; fill: none; }
 .ae-orbit-inner { fill: none; stroke: currentColor; opacity: 0.5; }
-/* The loop again, at a tenth of the size, parked at the foot of the screen.
-   Same strokes, same lighting rule — it is the diagram it tracks, not a
-   separate emblem. non-scaling-stroke pins the hairline to one device pixel;
-   scaled normally it would come out at a twelfth of that and disappear. */
-.ae-loop-mini { display: block; overflow: visible; }
-.ae-loop-mini path,
-.ae-loop-mini circle {
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1;
-    vector-effect: non-scaling-stroke;
-}
-.ae-loop-mini-track { opacity: 0.28; }
-.ae-loop-mini-scrub path { transition: opacity 0.4s var(--ae-e); }
-
 @media (prefers-reduced-motion: reduce) {
-    .ae-loop-mini-scrub path { transition: none; }
-}
+    }
 
 /* ---------- the loop, drawn large ---------- */
 
@@ -327,12 +315,22 @@
    it is reached. Nothing draws on — the figure is complete from the first
    frame and fills in, which is what keeps it from reading as a progress bar. */
 .ae-loop-track { opacity: 0.2; }
+/* One device pixel at every size. The figure runs from 132px wide at the foot
+   of the screen to the full frame, and a stroke measured in viewBox units would
+   be a tenth of a pixel at the small end and vanish. At full size this lands on
+   the same hairline the reference draws. */
+.ae-loop-track path,
+.ae-loop-track circle,
+.ae-loop-scrub path,
+.ae-loop-dot {
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+}
 .ae-loop-track path,
 .ae-loop-track circle,
 .ae-loop-scrub path {
     fill: none;
     stroke: currentColor;
-    stroke-width: 1;
 }
 .ae-loop-dotted { stroke-dasharray: 2 2; }
 .ae-loop-scrub path { transition: opacity 0.4s var(--ae-e); }
@@ -342,7 +340,6 @@
 .ae-loop-dot {
     fill: var(--ae-bg);
     stroke: currentColor;
-    stroke-width: 1;
     opacity: 0.2;
     transition: opacity 0.4s var(--ae-e);
 }
@@ -404,7 +401,7 @@
     /* stacked, all left-aligned: margin-left:auto would strand the links */
     .ae-ft { padding: 32px 16px 44px; }
     .ae-ft-links { margin-left: 0; }
-    .ae-mark svg { width: 108px; }
+
 }
 
 /* ---------- reduced motion ---------- */

@@ -118,6 +118,34 @@ const A = 304.5, B = 504.5, C = 1104.5;
 const TOUCH = 804.5;
 const LEFT = A - R;      // 4.5
 const RIGHT = C + R;     // 1404.5
+const FIGURE_RATIO = 1410 / 610;   // the viewBox, for sizing the fixed layer
+const REST_W = 132;                // how wide the figure is when parked
+const REST_GAP = 26;               // and how far its underside clears the floor
+
+// Where the figure sits for a given amount of growth. Pure, and exported, so
+// the geometry can be checked without a browser: the resting place has to land
+// exactly REST_GAP above the floor at any viewport, and a rounding slip there
+// is invisible until someone opens the site on a screen you did not try.
+//
+// Transform order matters. Written `translate() translateY() scale()`, the
+// scale is applied to the point first, about the element's own centre, and the
+// translations that follow are in unscaled pixels — so the resting offset is
+// exact rather than divided by the scale.
+export function figureAt(grown: number, vw: number, vh: number, leave = 0) {
+  const w = Math.min(1180, vw * 0.94);          // width once it has arrived
+  const min = REST_W / w;
+  const s = min + (1 - min) * grown;
+  const rest = vh / 2 - REST_GAP - REST_W / FIGURE_RATIO / 2;
+  const home = -vh * 0.07;                      // a little above centre, so the caption clears
+  const y = rest * (1 - grown) + home * grown;
+  return {
+    w,
+    scale: s,
+    y,
+    transform: `translate(-50%, -50%) translateY(${y.toFixed(1)}px) scale(${s.toFixed(4)})`,
+    opacity: 1 - leave,
+  };
+}
 
 // Six stations, not five. Five carry a stage; the sixth, at the left edge of
 // the middle circle, is structural — the reference has it too, as a bare dot.
@@ -163,38 +191,19 @@ const twoLines = (t: string) => {
   return [w.slice(0, best).join(' '), w.slice(best).join(' ')];
 };
 
-// The same figure, small enough to sit at the foot of the screen. It is the
-// diagram it tracks rather than a separate emblem — the strokes light in the
-// same order, by the same rule. Stroke width is pinned to the device pixel, or
-// a hairline at a tenth of the size would vanish.
-function LoopMark({ p }: { p: number }) {
+function Loop({
+  p,
+  active,
+  grown = 1,
+}: {
+  p: number;
+  active: number;
+  grown?: number;
+}) {
   const q = clamp(p);
-  return (
-    <svg className="ae-loop-mini" viewBox="0 0 1410 610" aria-hidden="true">
-      <g className="ae-loop-mini-track">
-        <circle cx={TOUCH - 100} cy={MID} r={100} />
-        {DOTTED.map((d) => (
-          <path key={d} d={d} />
-        ))}
-        {STROKES.slice(1).map((d) => (
-          <path key={d} d={d} />
-        ))}
-      </g>
-      <g className="ae-loop-mini-scrub">
-        {STROKES.map((d, i) => (
-          <path
-            key={d}
-            d={d}
-            style={{ opacity: clamp((q - i / STROKES.length) * STROKES.length * 1.7) }}
-          />
-        ))}
-      </g>
-    </svg>
-  );
-}
-
-function Loop({ p, active }: { p: number; active: number }) {
-  const q = clamp(p);
+  // At the foot of the screen the figure is 132px wide; numerals and a sentence
+  // would be specks. They arrive with the size.
+  const labels = clamp((grown - 0.55) / 0.35);
   return (
     <svg className="ae-loop" viewBox="0 0 1410 610" aria-hidden="true">
       {/* The track: every stroke, laid down once at a fifth of the ink. The
@@ -224,6 +233,7 @@ function Loop({ p, active }: { p: number; active: number }) {
 
       {/* Six stations. The bare one carries no numeral — it is where the middle
           circle reaches its left edge, and the reference marks it too. */}
+      <g style={{ opacity: labels }}>
       <circle className="ae-loop-dot" cx={BARE.x} cy={BARE.y} r={4} />
       {NODES.map((n, i) => {
         const reached = q >= i / (STAGES.length - 1) - 0.001;
@@ -251,6 +261,7 @@ function Loop({ p, active }: { p: number; active: number }) {
           </tspan>
         ))}
       </text>
+      </g>
     </svg>
   );
 }
@@ -305,6 +316,9 @@ export function Aerious() {
   const [pTrack, setPTrack] = useState(0); // through the five stages
   const [pMap, setPMap] = useState(0); // the diagram arriving
   const [mapOpen, setMapOpen] = useState(false);
+  const [vp, setVp] = useState({ w: 1280, h: 800 });
+  // how far the diagram has slid up past the fold — used to take it away again
+  const [pLeave, setPLeave] = useState(0);
 
   useEffect(() => {
     let raf = 0;
@@ -321,8 +335,18 @@ export function Aerious() {
       // the diagram is only one screen tall, so measure it arriving instead.
       // before layout it has no height — treat that as "not here yet", or the
       // ring would start life already closed.
+      setVp({ w: window.innerWidth, h: vh });
       const m = mapRef.current;
-      setPMap(m && m.offsetHeight > 0 ? clamp((vh - m.getBoundingClientRect().top) / vh) : 0);
+      if (m && m.offsetHeight > 0) {
+        const r = m.getBoundingClientRect();
+        setPMap(clamp((vh - r.top) / vh));
+        // and let it go once the section starts leaving, or it would sit on
+        // top of the footer
+        setPLeave(clamp((vh - r.bottom) / (vh * 0.55)));
+      } else {
+        setPMap(0);
+        setPLeave(0);
+      }
     };
     const onScroll = () => {
       if (!raf) raf = requestAnimationFrame(read);
@@ -350,6 +374,11 @@ export function Aerious() {
   const idx = Math.min(STAGES.length - 1, Math.round(pTrack * (STAGES.length - 1)));
   // the last node sits at 4/5, so the ring only closes on the diagram
   const pLoop = Math.min(1, pTrack * 0.8 + pMap * 0.2);
+
+  // Eased, because a linear scale from a twelfth to full size reads as a lurch
+  // at the small end.
+  const grown = pMap * pMap * (3 - 2 * pMap);
+  const figure = figureAt(grown, vp.w, vp.h, pLeave);
 
   // The opening hands one statement to the next. Exactly one may be lit, with a
   // dark gap between them: the three sit on top of each other, so any overlap
@@ -425,9 +454,9 @@ export function Aerious() {
 
       {/* the loop, full size --------------------------------------- */}
       <section className="ae-map" ref={mapRef}>
-        <div className="ae-map-stage">
-          <Loop p={pLoop} active={idx} />
-        </div>
+        {/* the figure itself is the fixed layer below — this only holds its
+            room open so the caption has somewhere to sit */}
+        <div className="ae-map-stage" aria-hidden="true" />
         <div className="ae-map-foot">
           <p className="ae-body">
             <b className="ae-cap">Ærious — from aer, Latin for air</b>
@@ -456,13 +485,22 @@ export function Aerious() {
         </div>
       </footer>
 
+      {/* One figure, two sizes. It rests small at the foot of the screen and,
+          as the diagram's section arrives, grows and rises into the middle of
+          the frame. Same element throughout — a crossfade between a small copy
+          and a large one reads as two drawings; this reads as one arriving.
+
+          The transform order matters: scale runs first, about the element's own
+          centre, and the translate that follows is in unscaled pixels, so the
+          resting position is exact at any viewport. */}
       <button
         type="button"
-        className={`ae-mark${mapOpen ? ' is-hidden' : ''}`}
-        onClick={() => setMapOpen(true)}
+        className={`ae-mark${mapOpen ? ' is-hidden' : ''}${grown > 0.02 ? ' is-grown' : ''}`}
+        onClick={() => grown < 0.5 && setMapOpen(true)}
         aria-label="View the Ærious system"
+        style={{ width: figure.w, transform: figure.transform, opacity: figure.opacity }}
       >
-        <LoopMark p={pLoop} />
+        <Loop p={pLoop} active={idx} grown={grown} />
       </button>
 
       {mapOpen && (
