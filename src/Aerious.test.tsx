@@ -56,7 +56,7 @@ test('the mark opens the system as a labelled map, and Escape closes it', () => 
   expect(screen.queryByRole('dialog')).toBeNull();
   fireEvent.click(screen.getAllByRole('button', { name: 'View the Ærious system' })[0]);
   const dialog = screen.getByRole('dialog', { name: 'Ærious' });
-  expect(dialog.querySelectorAll('.ae-orbit-name')).toHaveLength(5);
+  expect(dialog.querySelectorAll('.ae-loop-name')).toHaveLength(5);
   fireEvent.keyDown(document, { key: 'Escape' });
   expect(screen.queryByRole('dialog')).toBeNull();
 });

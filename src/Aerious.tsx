@@ -82,90 +82,183 @@ const clamp = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 // circles sharing one overlap, held inside a ring. It has two states from the
 // same drawing:
 //
-//   logo   — ring + the two circles. Header and footer. Nothing moving.
+//   logo   — ring + the two circles. Header and overlay. Nothing moving.
 //   meter  — the logo plus five ticks, a drawn arc and a travelling dot.
+//
+// The labelled version this used to carry is gone: the diagram it fed is now
+// the Loop below, drawn from tangent circles instead of one ring.
 //
 // Ticks rather than dots for the five stages: five evenly spaced dots on a
 // circle is the shape of a loading spinner, and reads as chrome instead of as
 // a mark. The last node sits at 4/5, so the arc only closes on the diagram.
-function Orbit({
-  p = 0,
-  variant = 'logo',
-}: {
-  p?: number;
-  variant?: 'logo' | 'meter' | 'map';
-}) {
-  const R = 34;
-  const C = 2 * Math.PI * R;
-  const at = (deg: number, r = R) => {
-    const rad = ((deg - 90) * Math.PI) / 180;
-    return [50 + r * Math.cos(rad), 50 + r * Math.sin(rad)] as const;
+function Orbit({ p = 0, variant = 'logo' }: { p?: number; variant?: 'logo' | 'meter' }) {
+  const RING = 34;
+  const C = 2 * Math.PI * RING;
+  const at = (deg: number, r = RING) => {
+    const a = ((deg - 90) * Math.PI) / 180;
+    return [50 + r * Math.cos(a), 50 + r * Math.sin(a)] as const;
   };
-  const labelled = variant === 'map';
-  const live = variant !== 'logo';
-  // hairlines in viewBox units: the map is drawn large, the glyph small
-  const w = labelled ? 0.42 : variant === 'logo' ? 2.6 : 2.2;
+  const live = variant === 'meter';
+  const w = live ? 2.2 : 2.6;
   const [rx, ry] = at(p * 360);
 
   return (
-    <svg className="ae-orbit" viewBox="0 0 100 100" aria-hidden={!labelled}>
-      <circle className="ae-orbit-track" cx="50" cy="50" r={R} strokeWidth={w} />
+    <svg className="ae-orbit" viewBox="0 0 100 100" aria-hidden="true">
+      <circle className="ae-orbit-track" cx="50" cy="50" r={RING} strokeWidth={w} />
       {/* the Æ: two circles that share their overlap */}
-      <circle className="ae-orbit-inner" cx={50 - R * 0.26} cy="50" r={R * 0.4} strokeWidth={w} />
-      <circle className="ae-orbit-inner" cx={50 + R * 0.26} cy="50" r={R * 0.4} strokeWidth={w} />
+      <circle className="ae-orbit-inner" cx={50 - RING * 0.26} cy="50" r={RING * 0.4} strokeWidth={w} />
+      <circle className="ae-orbit-inner" cx={50 + RING * 0.26} cy="50" r={RING * 0.4} strokeWidth={w} />
       {live && (
-        <circle
-          className="ae-orbit-arc"
-          cx="50"
-          cy="50"
-          r={R}
-          strokeWidth={w}
-          strokeDasharray={C}
-          strokeDashoffset={C * (1 - p)}
-          transform="rotate(-90 50 50)"
-        />
+        <>
+          <circle
+            className="ae-orbit-arc"
+            cx="50"
+            cy="50"
+            r={RING}
+            strokeWidth={w}
+            strokeDasharray={C}
+            strokeDashoffset={C * (1 - p)}
+            transform="rotate(-90 50 50)"
+          />
+          {STAGES.map((s, i) => {
+            const deg = i * 72;
+            const [x1, y1] = at(deg, RING - 3.4);
+            const [x2, y2] = at(deg, RING + 3.4);
+            return (
+              <line
+                key={s.n}
+                className={`ae-orbit-tick${p >= i / 5 - 0.001 ? ' is-past' : ''}`}
+                x1={x1}
+                y1={y1}
+                x2={x2}
+                y2={y2}
+                strokeWidth={w}
+              />
+            );
+          })}
+          <circle className="ae-orbit-rider" cx={rx} cy={ry} r={5} />
+        </>
       )}
-      {live &&
-        STAGES.map((s, i) => {
-          const deg = i * 72;
-          const [nx, ny] = at(deg);
-          const [x1, y1] = at(deg, R - (labelled ? 2.2 : 3.4));
-          const [x2, y2] = at(deg, R + (labelled ? 2.2 : 3.4));
-          const past = p >= i / 5 - 0.001;
-          const tick = (
-            <line
-              className={`ae-orbit-tick${past ? ' is-past' : ''}`}
-              x1={x1}
-              y1={y1}
-              x2={x2}
-              y2={y2}
-              strokeWidth={w}
-            />
-          );
-          if (!labelled) return <g key={s.n}>{tick}</g>;
-          // Labels sit outside the ring and lean away from it: nodes on the
-          // right read outward, nodes on the left read inward, and the top node
-          // stacks above. A single radial offset instead would lay the numeral
-          // and the name side by side on the horizontal nodes, where they
-          // overlap each other and the stroke.
-          const side = nx > 55 ? 1 : nx < 45 ? -1 : 0;
-          const lx = nx + side * 7.5;
-          const numY = side === 0 ? ny - 12 : ny - 2.4;
-          const nameY = side === 0 ? ny - 6.2 : ny + 3.2;
-          const anchor = side === 1 ? 'start' : side === -1 ? 'end' : 'middle';
-          return (
-            <g key={s.n}>
-              {tick}
-              <text className="ae-orbit-label" x={lx} y={numY} fontSize="4.4" textAnchor={anchor}>
-                {s.n}
-              </text>
-              <text className="ae-orbit-name" x={lx} y={nameY} textAnchor={anchor}>
-                {s.title}
-              </text>
-            </g>
-          );
-        })}
-      {live && <circle className="ae-orbit-rider" cx={rx} cy={ry} r={labelled ? 1.6 : 5} />}
+    </svg>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* the loop, drawn at architectural scale                              */
+/* ------------------------------------------------------------------ */
+
+// Two circles of equal radius, set exactly 2R apart so they meet at a single
+// point rather than overlapping. The figure is the S drawn over the top of one
+// and under the other: one continuous line, five stations, and the pair of
+// circles still legible behind it as the Æ.
+//
+// Every arc in here is the same radius and every join is tangent, so the line
+// never kinks. That is the whole discipline of the drawing.
+const R = 300;
+const CY = 330;
+const C1 = 504;                 // left centre
+const C2 = C1 + 2 * R;          // right centre — tangent, not overlapping
+const TOUCH = C1 + R;           // where they meet, and the middle station
+
+// The five stations sit a quarter-turn apart along the line.
+const NODES = STAGES.map((s, i) => {
+  const pt = [
+    { x: C1 - R, y: CY },       // I    left extreme
+    { x: C1, y: CY - R },       // II   over the top
+    { x: TOUCH, y: CY },        // III  the crossing
+    { x: C2, y: CY + R },       // IV   under the bottom
+    { x: C2 + R, y: CY },       // V    right extreme
+  ][i];
+  return { ...s, ...pt };
+});
+
+// Over the left circle, then under the right one. Sweep flips at the join.
+const LINE =
+  `M${C1 - R} ${CY} A${R} ${R} 0 0 1 ${TOUCH} ${CY}` +
+  ` A${R} ${R} 0 0 0 ${C2 + R} ${CY}`;
+const LEN = 2 * Math.PI * R;    // two half-turns
+
+// The same S drawn the other way — under the left circle, over the right. It
+// adds no new vocabulary and closes the two arcs into a pair of lenses, which
+// is where the drawing gets its depth.
+const MIRROR =
+  `M${C1 - R} ${CY} A${R} ${R} 0 0 0 ${TOUCH} ${CY}` +
+  ` A${R} ${R} 0 0 1 ${C2 + R} ${CY}`;
+
+// Where the travelling dot is, walked along the same construction.
+const walk = (u: number) => {
+  const t = u * 2;                                   // which half we are in
+  if (t <= 1) {
+    const a = Math.PI - t * Math.PI;                 // left circle, over the top
+    return { x: C1 + R * Math.cos(a), y: CY - R * Math.sin(a) };
+  }
+  const a = Math.PI - (t - 1) * Math.PI;             // right circle, under
+  return { x: C2 + R * Math.cos(a), y: CY + R * Math.sin(a) };
+};
+
+// The anchors are sentences, not two-word slogans, so they have to break.
+// Split on the word boundary nearest the middle: balanced lines, no hyphens.
+const twoLines = (t: string) => {
+  const w = t.split(' ');
+  let best = 1, gap = Infinity;
+  for (let i = 1; i < w.length; i++) {
+    const d = Math.abs(w.slice(0, i).join(' ').length - w.slice(i).join(' ').length);
+    if (d < gap) { gap = d; best = i; }
+  }
+  return [w.slice(0, best).join(' '), w.slice(best).join(' ')];
+};
+
+function Loop({ p, active }: { p: number; active: number }) {
+  const rider = walk(clamp(p));
+  return (
+    <svg className="ae-loop" viewBox="40 -80 1530 860" aria-hidden="true">
+      {/* the two circles whole, dotted: the Æ standing behind the journey */}
+      <circle className="ae-loop-ghost" cx={C1} cy={CY} r={R} />
+      <circle className="ae-loop-ghost" cx={C2} cy={CY} r={R} />
+      <circle className="ae-loop-ghost is-fine" cx={TOUCH} cy={CY} r={R / 3} />
+      <path className="ae-loop-ghost" d={MIRROR} />
+
+      <path className="ae-loop-track" d={LINE} />
+      <path
+        className="ae-loop-arc"
+        d={LINE}
+        strokeDasharray={LEN}
+        strokeDashoffset={LEN * (1 - clamp(p))}
+      />
+
+      {NODES.map((n, i) => {
+        const reached = p >= i / (STAGES.length - 1) - 0.001;
+        // labels lean away from the line: outward at the ends, above the crest,
+        // below the trough, so nothing ever sits on top of the stroke
+        const above = n.y < CY;
+        const side = n.x < C1 ? -1 : n.x > C2 ? 1 : 0;
+        const lx = n.x + side * 46;
+        const ly = n.y + (side !== 0 ? -34 : above ? -52 : 74);
+        const anchor = side === 1 ? 'start' : side === -1 ? 'end' : 'middle';
+        return (
+          <g key={n.n} className={`ae-loop-node${reached ? ' is-past' : ''}`}>
+            <circle className="ae-loop-dot" cx={n.x} cy={n.y} r={6} />
+            <text className="ae-loop-num" x={lx} y={ly} textAnchor={anchor}>
+              {n.n}
+            </text>
+            <text className="ae-loop-name" x={lx} y={ly + 26} textAnchor={anchor}>
+              {n.title}
+            </text>
+          </g>
+        );
+      })}
+
+      {/* the stage you are on, set in the hollow the line leaves open inside
+          the right circle — above its arc, which dives under */}
+      <text className="ae-loop-say" x={C2} y={CY - 74} textAnchor="middle">
+        {twoLines(STAGES[active].anchor).map((line, i) => (
+          <tspan key={line} x={C2} dy={i === 0 ? 0 : 52}>
+            {line}
+          </tspan>
+        ))}
+      </text>
+
+      <circle className="ae-loop-rider" cx={rider.x} cy={rider.y} r={10} />
     </svg>
   );
 }
@@ -341,9 +434,7 @@ export function Aerious() {
       {/* the loop, full size --------------------------------------- */}
       <section className="ae-map" ref={mapRef}>
         <div className="ae-map-stage">
-          <div className="ae-orbit-box">
-            <Orbit p={pLoop} variant="map" />
-          </div>
+          <Loop p={pLoop} active={idx} />
         </div>
         <div className="ae-map-foot">
           <p className="ae-body">
@@ -399,9 +490,7 @@ export function Aerious() {
             </button>
           </div>
           <div className="ae-overlay-stage">
-            <div className="ae-orbit-box is-overlay">
-              <Orbit p={pLoop} variant="map" />
-            </div>
+            <Loop p={pLoop} active={idx} />
           </div>
         </div>
       )}

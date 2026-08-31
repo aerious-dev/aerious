@@ -205,19 +205,12 @@
     grid-template-rows: 1fr auto;
     /* the bottom padding is the mark's parking space — without it the fixed
        orbit sits on top of this copy */
-    padding: 84px 26px 120px;
+    /* narrower side padding than the rest of the page: the figure wants the
+       width, and it is the one element allowed to run to the edges */
+    padding: 84px 14px 120px;
     gap: 32px;
 }
-.ae-map-stage { display: grid; place-items: center; min-height: 0; }
-/* the diagram is square and takes whatever room is left after the caption —
-   sizing it off vh alone clipped it on short windows */
-.ae-orbit-box {
-    aspect-ratio: 1;
-    height: 100%;
-    max-height: min(52vh, 74vw);
-    max-width: 100%;
-}
-.ae-orbit-box.is-overlay { max-height: min(62vh, 80vw); }
+.ae-map-stage { display: grid; place-items: center; min-height: 0; overflow: visible; }
 .ae-map-foot {
     display: grid;
     grid-template-columns: 1fr auto;
@@ -303,26 +296,77 @@
 .ae-orbit-tick { stroke: currentColor; opacity: 0.3; }
 .ae-orbit-tick.is-past { opacity: 1; }
 .ae-orbit-rider { fill: currentColor; }
-.ae-orbit-label {
+/* ---------- the loop, drawn large ---------- */
+
+/* Hairlines, because the figure is enormous. Everything here is a fraction of
+   a viewBox unit: at 1240 units wide rendered near viewport width, 1.1 is about
+   one device pixel. That thinness is the whole effect — a heavy line at this
+   scale reads as a diagram, a hairline reads as an instrument. */
+.ae-loop { display: block; width: 100%; height: 100%; overflow: visible; }
+
+.ae-loop-ghost {
+    fill: none;
+    stroke: currentColor;
+    opacity: 0.13;
+    stroke-width: 1.1;
+    stroke-dasharray: 3 7;
+}
+.ae-loop-ghost.is-fine { opacity: 0.09; stroke-dasharray: 2 9; }
+
+.ae-loop-track { fill: none; stroke: currentColor; opacity: 0.24; stroke-width: 1.1; }
+.ae-loop-arc {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.4;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 0.2s var(--ae-e);
+}
+
+.ae-loop-dot {
+    fill: var(--ae-bg);
+    stroke: currentColor;
+    stroke-width: 1.4;
+    opacity: 0.4;
+    transition: opacity 0.4s var(--ae-e), fill 0.4s var(--ae-e);
+}
+.ae-loop-node.is-past .ae-loop-dot { fill: currentColor; opacity: 1; }
+
+.ae-loop-num {
     font-family: var(--ae-serif);
     font-weight: 475;
+    font-size: 26px;
     fill: currentColor;
-    opacity: 0.5;
-    dominant-baseline: middle;
+    opacity: 0.45;
+    transition: opacity 0.4s var(--ae-e);
 }
-.ae-orbit-name {
-    font-family: var(--ae-sans);
-    font-size: 3.4px;
-    letter-spacing: 0.5px;
-    fill: currentColor;
-    opacity: 0.5;
-    dominant-baseline: middle;
+.ae-loop-name {
+    font-size: 12px;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
+    fill: currentColor;
+    opacity: 0.3;
+    transition: opacity 0.4s var(--ae-e);
 }
-.ae-orbit-hit { cursor: pointer; }
-.ae-orbit-hit:hover .ae-orbit-label,
-.ae-orbit-hit:hover .ae-orbit-name { opacity: 1; }
-.ae-orbit-hit:hover .ae-orbit-tick { opacity: 1; }
+.ae-loop-node.is-past .ae-loop-num { opacity: 1; }
+.ae-loop-node.is-past .ae-loop-name { opacity: 0.62; }
+
+/* The line of type inside the figure. Serif and large: it is the one warm
+   thing in a drawing made entirely of hairlines. */
+.ae-loop-say {
+    font-family: var(--ae-serif);
+    font-weight: 475;
+    font-size: 42px;
+    letter-spacing: 0.01em;
+    fill: currentColor;
+    opacity: 0.9;
+}
+
+.ae-loop-rider { fill: currentColor; }
+
+@media (prefers-reduced-motion: reduce) {
+    .ae-loop-arc { transition: none; }
+}
+
 
 /* ---------- narrow screens ---------- */
 
