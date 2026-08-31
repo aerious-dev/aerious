@@ -27,28 +27,31 @@ test('leaves the site only for aerious.co support and its own privacy page', () 
   expect(hrefs.some((h) => h.includes('admin@'))).toBe(false);
 });
 
-// The mark is the whole idea: at rest the arc is undrawn and only the first
-// tick is lit. If the dash maths ever inverts, this fails.
-test('the meter starts undrawn, with the rider parked on the first stage', () => {
+// The mark at the foot of the screen is the diagram in miniature: the same six
+// strokes, laid over a faint copy of themselves, lighting one at a time. At
+// rest nothing is lit. If the progress maths ever inverts, this fails.
+test('the mark is the figure in miniature, and starts with nothing lit', () => {
   const { container } = renderPage();
-  const arc = container.querySelector('.ae-mark .ae-orbit-arc')!;
-  const C = Number(arc.getAttribute('stroke-dasharray'));
-  expect(Number(arc.getAttribute('stroke-dashoffset'))).toBeCloseTo(C, 5);
-  expect(container.querySelectorAll('.ae-mark .ae-orbit-tick.is-past')).toHaveLength(1);
-  const rider = container.querySelector('.ae-mark .ae-orbit-rider')!;
-  expect(Number(rider.getAttribute('cx'))).toBeCloseTo(50, 5); // top of the ring
-  expect(Number(rider.getAttribute('cy'))).toBeCloseTo(16, 5);
+  const mark = container.querySelector('.ae-mark .ae-loop-mini')!;
+  expect(mark.querySelectorAll('.ae-loop-mini-track path')).toHaveLength(7);
+  const scrub = [...mark.querySelectorAll<SVGPathElement>('.ae-loop-mini-scrub path')];
+  expect(scrub).toHaveLength(6);
+  expect(scrub.map((p) => p.style.opacity)).toEqual(['0', '0', '0', '0', '0', '0']);
+  // and it draws the same paths the big figure does
+  const big = container.querySelector('.ae-map .ae-loop')!;
+  expect(scrub.map((p) => p.getAttribute('d'))).toEqual(
+    [...big.querySelectorAll('.ae-loop-scrub path')].map((p) => p.getAttribute('d')),
+  );
 });
 
-// The logo and the instrument are the same drawing in two states — the header
-// lockup must stay still.
-test('the header logo carries no arc, ticks or rider', () => {
+// The logo is the wordmark's companion, not an instrument: it never moves.
+test('the header logo carries nothing that animates', () => {
   const { container } = renderPage();
   const logo = container.querySelector('.ae-hd .ae-orbit')!;
   expect(logo.querySelectorAll('.ae-orbit-inner')).toHaveLength(2);
-  expect(logo.querySelector('.ae-orbit-arc')).toBeNull();
-  expect(logo.querySelector('.ae-orbit-tick')).toBeNull();
-  expect(logo.querySelector('.ae-orbit-rider')).toBeNull();
+  // three circles and nothing else — a ring and the Æ inside it
+  expect(logo.children).toHaveLength(3);
+  expect([...logo.children].every((c) => c.tagName === 'circle')).toBe(true);
 });
 
 test('the mark opens the system as a labelled map, and Escape closes it', () => {

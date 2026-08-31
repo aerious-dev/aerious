@@ -82,63 +82,18 @@ const clamp = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
 // circles sharing one overlap, held inside a ring. It has two states from the
 // same drawing:
 //
-//   logo   — ring + the two circles. Header and overlay. Nothing moving.
-//   meter  — the logo plus five ticks, a drawn arc and a travelling dot.
+// It is the wordmark's companion and nothing else — the header and the overlay,
+// never moving. It used to double as the scroll meter, but a meter should be a
+// small copy of the figure it tracks, so LoopMark below does that job now.
 //
-// The labelled version this used to carry is gone: the diagram it fed is now
-// the Loop below, drawn from tangent circles instead of one ring.
-//
-// Ticks rather than dots for the five stages: five evenly spaced dots on a
-// circle is the shape of a loading spinner, and reads as chrome instead of as
-// a mark. The last node sits at 4/5, so the arc only closes on the diagram.
-function Orbit({ p = 0, variant = 'logo' }: { p?: number; variant?: 'logo' | 'meter' }) {
-  const RING = 34;
-  const C = 2 * Math.PI * RING;
-  const at = (deg: number, r = RING) => {
-    const a = ((deg - 90) * Math.PI) / 180;
-    return [50 + r * Math.cos(a), 50 + r * Math.sin(a)] as const;
-  };
-  const live = variant === 'meter';
-  const w = live ? 2.2 : 2.6;
-  const [rx, ry] = at(p * 360);
-
+function Orbit() {
+  const R = 34;
   return (
     <svg className="ae-orbit" viewBox="0 0 100 100" aria-hidden="true">
-      <circle className="ae-orbit-track" cx="50" cy="50" r={RING} strokeWidth={w} />
+      <circle className="ae-orbit-track" cx="50" cy="50" r={R} strokeWidth="2.6" />
       {/* the Æ: two circles that share their overlap */}
-      <circle className="ae-orbit-inner" cx={50 - RING * 0.26} cy="50" r={RING * 0.4} strokeWidth={w} />
-      <circle className="ae-orbit-inner" cx={50 + RING * 0.26} cy="50" r={RING * 0.4} strokeWidth={w} />
-      {live && (
-        <>
-          <circle
-            className="ae-orbit-arc"
-            cx="50"
-            cy="50"
-            r={RING}
-            strokeWidth={w}
-            strokeDasharray={C}
-            strokeDashoffset={C * (1 - p)}
-            transform="rotate(-90 50 50)"
-          />
-          {STAGES.map((s, i) => {
-            const deg = i * 72;
-            const [x1, y1] = at(deg, RING - 3.4);
-            const [x2, y2] = at(deg, RING + 3.4);
-            return (
-              <line
-                key={s.n}
-                className={`ae-orbit-tick${p >= i / 5 - 0.001 ? ' is-past' : ''}`}
-                x1={x1}
-                y1={y1}
-                x2={x2}
-                y2={y2}
-                strokeWidth={w}
-              />
-            );
-          })}
-          <circle className="ae-orbit-rider" cx={rx} cy={ry} r={5} />
-        </>
-      )}
+      <circle className="ae-orbit-inner" cx={50 - R * 0.26} cy="50" r={R * 0.4} strokeWidth="2.6" />
+      <circle className="ae-orbit-inner" cx={50 + R * 0.26} cy="50" r={R * 0.4} strokeWidth="2.6" />
     </svg>
   );
 }
@@ -207,6 +162,36 @@ const twoLines = (t: string) => {
   }
   return [w.slice(0, best).join(' '), w.slice(best).join(' ')];
 };
+
+// The same figure, small enough to sit at the foot of the screen. It is the
+// diagram it tracks rather than a separate emblem — the strokes light in the
+// same order, by the same rule. Stroke width is pinned to the device pixel, or
+// a hairline at a tenth of the size would vanish.
+function LoopMark({ p }: { p: number }) {
+  const q = clamp(p);
+  return (
+    <svg className="ae-loop-mini" viewBox="0 0 1410 610" aria-hidden="true">
+      <g className="ae-loop-mini-track">
+        <circle cx={TOUCH - 100} cy={MID} r={100} />
+        {DOTTED.map((d) => (
+          <path key={d} d={d} />
+        ))}
+        {STROKES.slice(1).map((d) => (
+          <path key={d} d={d} />
+        ))}
+      </g>
+      <g className="ae-loop-mini-scrub">
+        {STROKES.map((d, i) => (
+          <path
+            key={d}
+            d={d}
+            style={{ opacity: clamp((q - i / STROKES.length) * STROKES.length * 1.7) }}
+          />
+        ))}
+      </g>
+    </svg>
+  );
+}
 
 function Loop({ p, active }: { p: number; active: number }) {
   const q = clamp(p);
@@ -477,7 +462,7 @@ export function Aerious() {
         onClick={() => setMapOpen(true)}
         aria-label="View the Ærious system"
       >
-        <Orbit p={pLoop} variant="meter" />
+        <LoopMark p={pLoop} />
       </button>
 
       {mapOpen && (

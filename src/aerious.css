@@ -261,7 +261,7 @@
     color: var(--ae-fg);
     transition: opacity 0.4s var(--ae-e);
 }
-.ae-mark svg { width: 62px; height: 62px; display: block; }
+.ae-mark svg { width: 132px; height: auto; display: block; }
 .ae-mark.is-hidden { opacity: 0; pointer-events: none; }
 
 .ae-overlay {
@@ -291,11 +291,26 @@
 /* the orbit itself */
 .ae-orbit { display: block; width: 100%; height: auto; overflow: visible; }
 .ae-orbit-track { stroke: currentColor; opacity: 0.22; fill: none; }
-.ae-orbit-arc { stroke: currentColor; fill: none; stroke-linecap: round; }
 .ae-orbit-inner { fill: none; stroke: currentColor; opacity: 0.5; }
-.ae-orbit-tick { stroke: currentColor; opacity: 0.3; }
-.ae-orbit-tick.is-past { opacity: 1; }
-.ae-orbit-rider { fill: currentColor; }
+/* The loop again, at a tenth of the size, parked at the foot of the screen.
+   Same strokes, same lighting rule — it is the diagram it tracks, not a
+   separate emblem. non-scaling-stroke pins the hairline to one device pixel;
+   scaled normally it would come out at a twelfth of that and disappear. */
+.ae-loop-mini { display: block; overflow: visible; }
+.ae-loop-mini path,
+.ae-loop-mini circle {
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1;
+    vector-effect: non-scaling-stroke;
+}
+.ae-loop-mini-track { opacity: 0.28; }
+.ae-loop-mini-scrub path { transition: opacity 0.4s var(--ae-e); }
+
+@media (prefers-reduced-motion: reduce) {
+    .ae-loop-mini-scrub path { transition: none; }
+}
+
 /* ---------- the loop, drawn large ---------- */
 
 /* The whole lattice sits at a fifth of the ink and every line is one unit
@@ -389,7 +404,7 @@
     /* stacked, all left-aligned: margin-left:auto would strand the links */
     .ae-ft { padding: 32px 16px 44px; }
     .ae-ft-links { margin-left: 0; }
-    .ae-mark svg { width: 52px; height: 52px; }
+    .ae-mark svg { width: 108px; }
 }
 
 /* ---------- reduced motion ---------- */
