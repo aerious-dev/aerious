@@ -10,6 +10,16 @@ software later. **Copy on this site must not imply it is operating** — no "we
 build", no "our clients", no "our platform". Saying plainly that it does not
 exist yet is both the honest framing and the stronger one.
 
+## Where this sits
+
+`ÆRIOUS/` on disk is the company folder; this repository is only the `web/`
+subtree inside it. **The git root is `web/`, not the company folder**, which is
+the whole point: contracts, finances and internal notes live as siblings of
+`web/` and are therefore outside a public repository by construction, not by
+anyone remembering a `.gitignore` line.
+
+Keep it that way. Anything private goes beside `web/`, never inside it.
+
 ## Running it
 
 ```bash
