@@ -164,36 +164,36 @@ const TOUCH = 804.5;
 const LEFT = A - R;      // 4.5
 const RIGHT = C + R;     // 1404.5
 
-// The five stations: left edge, over B, under C, right edge, under B.
-const NODES = STAGES.map((s, i) => ({
-  ...s,
-  ...[
-    { x: LEFT, y: MID, dx: 64, dy: 9, anchor: 'start' as const },
-    { x: B, y: TOP, dx: 0, dy: -30, anchor: 'middle' as const },
-    { x: C, y: BOT, dx: 0, dy: 52, anchor: 'middle' as const },
-    { x: RIGHT, y: MID, dx: -64, dy: 9, anchor: 'end' as const },
-    { x: B, y: BOT, dx: 0, dy: 52, anchor: 'middle' as const },
-  ][i],
-}));
+// Six stations, not five. Five carry a stage; the sixth, at the left edge of
+// the middle circle, is structural — the reference has it too, as a bare dot.
+const STATIONS = [
+  { x: LEFT, y: MID, dx: 64, dy: 9, anchor: 'start' as const },
+  { x: B, y: TOP, dx: 0, dy: -30, anchor: 'middle' as const },
+  { x: C, y: BOT, dx: 0, dy: 52, anchor: 'middle' as const },
+  { x: RIGHT, y: MID, dx: -64, dy: 9, anchor: 'end' as const },
+  { x: B, y: BOT, dx: 0, dy: 52, anchor: 'middle' as const },
+];
+const NODES = STAGES.map((s, i) => ({ ...s, ...STATIONS[i] }));
+const BARE = { x: B - R, y: MID };
 
-// The line that carries progress: in at the left edge, under the first circle,
-// up to where the two touch, over the second, out at the right edge.
-const JOURNEY =
-  `M${LEFT} ${MID} A${R} ${R} 0 0 0 ${A} ${BOT} L${B} ${BOT}` +
-  ` A${R} ${R} 0 0 0 ${TOUCH} ${MID} A${R} ${R} 0 0 1 ${C} ${TOP}` +
-  ` A${R} ${R} 0 0 1 ${RIGHT} ${MID}`;
-const LEN = (Math.PI * R * 2) + (B - A);   // four quarter-turns and the flat
-
-// Everything else the same three centres throw. No stages hang off these —
-// they are the structure the journey is cut out of.
-const LATTICE = [
+// The drawing is six strokes. Each is laid down once at a fifth of the ink and
+// again at full strength, and the full-strength copy fades in as you arrive —
+// so the figure is complete from the first frame and fills in rather than
+// draws on. Order here is the order they light.
+const STROKES = [
+  // the upper-left crescent: dotted in the track, solid once you reach it
+  `M${LEFT} ${MID} A${R} ${R} 0 0 1 ${A} ${TOP} L${B} ${TOP}`,
   `M${B} ${TOP} A${R} ${R} 0 0 1 ${TOUCH} ${MID} A${R} ${R} 0 0 0 ${C} ${BOT}`,
   `M${RIGHT} ${MID} A${R} ${R} 0 0 1 ${C} ${BOT}`,
+  `M${B} ${BOT} A${R} ${R} 0 0 0 ${TOUCH} ${MID} A${R} ${R} 0 0 1 ${C} ${TOP} A${R} ${R} 0 0 1 ${RIGHT} ${MID}`,
+  `M${LEFT} ${MID} A${R} ${R} 0 0 0 ${A} ${BOT} L${B} ${BOT}`,
   `M${B - R} ${MID} A${R} ${R} 0 0 0 ${B} ${BOT}`,
 ];
+// Drawn dotted in the track layer only. STROKES[0] is the solid twin of the
+// second one, which is why that crescent turns solid as it lights.
 const DOTTED = [
   `M${B - R} ${MID} A${R} ${R} 0 0 1 ${B} ${TOP}`,
-  `M${LEFT} ${MID} A${R} ${R} 0 0 1 ${A} ${TOP} L${B} ${TOP}`,
+  STROKES[0],
 ];
 
 // The anchors are sentences, not two-word slogans, so they have to break.
@@ -212,32 +212,39 @@ function Loop({ p, active }: { p: number; active: number }) {
   const q = clamp(p);
   return (
     <svg className="ae-loop" viewBox="0 0 1410 610" aria-hidden="true">
-      {/* Everything is drawn once, faintly, and once more at full strength with
-          only the travelled part revealed. The whole lattice sits at a fifth of
-          the ink so the line that matters can be a hairline and still lead. */}
-      <g className="ae-loop-base">
+      {/* The track: every stroke, laid down once at a fifth of the ink. The
+          drawing is whole from the first frame — nothing is waiting to appear. */}
+      <g className="ae-loop-track">
+        <circle className="ae-loop-dotted" cx={TOUCH - 100} cy={MID} r={100} />
         {DOTTED.map((d) => (
           <path key={d} className="ae-loop-dotted" d={d} />
         ))}
-        <circle className="ae-loop-dotted" cx={TOUCH - 100} cy={MID} r={100} />
-        {LATTICE.map((d) => (
+        {STROKES.slice(1).map((d) => (
           <path key={d} d={d} />
         ))}
-        <path d={JOURNEY} />
       </g>
 
-      <path
-        className="ae-loop-live"
-        d={JOURNEY}
-        strokeDasharray={LEN}
-        strokeDashoffset={LEN * (1 - q)}
-      />
+      {/* The scrub: the same six strokes at full strength, each fading in as
+          you reach it. They light whole rather than drawing on, which is what
+          keeps the figure from reading as a progress bar. */}
+      <g className="ae-loop-scrub">
+        {STROKES.map((d, i) => (
+          <path
+            key={d}
+            d={d}
+            style={{ opacity: clamp((q - i / STROKES.length) * STROKES.length * 1.7) }}
+          />
+        ))}
+      </g>
 
+      {/* Six stations. The bare one carries no numeral — it is where the middle
+          circle reaches its left edge, and the reference marks it too. */}
+      <circle className="ae-loop-dot" cx={BARE.x} cy={BARE.y} r={4} />
       {NODES.map((n, i) => {
         const reached = q >= i / (STAGES.length - 1) - 0.001;
         return (
           <g key={n.n} className={`ae-loop-node${reached ? ' is-past' : ''}`}>
-            <circle className="ae-loop-dot" cx={n.x} cy={n.y} r={5.5} />
+            <circle className="ae-loop-dot" cx={n.x} cy={n.y} r={4} />
             <text className="ae-loop-num" x={n.x + n.dx} y={n.y + n.dy} textAnchor={n.anchor}>
               {n.n}
             </text>
@@ -245,10 +252,10 @@ function Loop({ p, active }: { p: number; active: number }) {
         );
       })}
 
-      {/* The stage you are on, in the hollow of the second circle. The nodes
-          carry numerals only, as the reference does, so this is where the
-          numeral gets a name. Both lines have to stay inside R of that centre
-          or they run into the node sitting on the edge. */}
+      {/* The stage you are on, in the hollow of the right-hand circle. The
+          stations carry numerals only, as the reference does, so this is where
+          the numeral gets a name. Both lines have to stay inside R of that
+          centre or they run into the station sitting on its edge. */}
       <text className="ae-loop-eyebrow" x={C} y={MID - 66} textAnchor="middle">
         {STAGES[active].n} · {STAGES[active].title}
       </text>

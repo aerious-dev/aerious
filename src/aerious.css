@@ -307,33 +307,31 @@
    element and .ae-map-stage keep overflow visible so nothing clips. */
 .ae-loop { display: block; width: 100%; height: 100%; overflow: visible; }
 
-.ae-loop-base { opacity: 0.2; }
-.ae-loop-base path,
-.ae-loop-base circle {
+/* Two layers of the same six strokes. The track carries all of them at a fifth
+   of the ink; the scrub carries them again at full strength, each fading in as
+   it is reached. Nothing draws on — the figure is complete from the first
+   frame and fills in, which is what keeps it from reading as a progress bar. */
+.ae-loop-track { opacity: 0.2; }
+.ae-loop-track path,
+.ae-loop-track circle,
+.ae-loop-scrub path {
     fill: none;
     stroke: currentColor;
     stroke-width: 1;
 }
 .ae-loop-dotted { stroke-dasharray: 2 2; }
+.ae-loop-scrub path { transition: opacity 0.4s var(--ae-e); }
 
-.ae-loop-live {
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 1;
-    transition: stroke-dashoffset 0.2s var(--ae-e);
-}
-
-/* Hollow, so the line runs on behind a station it has not reached yet, and
-   filled once it has. Unreached dots carry exactly the base ink — anything
-   brighter and five specks lead the eye instead of the line does. */
+/* Dark-filled, so the strokes behind a station stop at its edge rather than
+   running through it. */
 .ae-loop-dot {
-    fill: none;
+    fill: var(--ae-bg);
     stroke: currentColor;
     stroke-width: 1;
     opacity: 0.2;
-    transition: opacity 0.4s var(--ae-e), fill 0.4s var(--ae-e);
+    transition: opacity 0.4s var(--ae-e);
 }
-.ae-loop-node.is-past .ae-loop-dot { fill: currentColor; opacity: 1; }
+.ae-loop-node.is-past .ae-loop-dot { opacity: 1; }
 
 .ae-loop-num {
     font-family: var(--ae-serif);
@@ -377,8 +375,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .ae-loop-live { transition: none; }
-}
+    }
 
 /* ---------- narrow screens ---------- */
 
