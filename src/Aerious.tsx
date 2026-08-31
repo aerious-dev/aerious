@@ -73,7 +73,12 @@ const STAGES: Stage[] = [
 
 const CLIP = (name: string) => `/media/${name}`;
 
-const clamp = (v: number) => (v < 0 ? 0 : v > 1 ? 1 : v);
+// Written so NaN lands on 0 rather than passing through. A viewport can report
+// zero height — a hidden tab, a prerender, an embed measured before layout —
+// and the progress maths then divides zero by zero. One NaN there used to reach
+// every derived value: an invalid opacity on the figure, and, because NaN fails
+// every comparison, a mark whose click quietly stopped working.
+export const clamp = (v: number) => (v > 0 ? (v > 1 ? 1 : v) : 0);
 
 /* ------------------------------------------------------------------ */
 /* the mark                                                            */
@@ -192,13 +197,15 @@ const STATIONS = [
   { x: B, y: BOT, dx: 0, dy: 52, anchor: 'middle' as const },
 ];
 const NODES = STAGES.map((s, i) => ({ ...s, ...STATIONS[i] }));
+// just the coordinates, so the hover map can be checked against the geometry
+export const STATION_POINTS = STATIONS.map(({ x, y }) => ({ x, y }));
 const BARE = { x: B - R, y: MID };
 
 // The drawing is six strokes. Each is laid down once at a fifth of the ink and
 // again at full strength, and the full-strength copy fades in as you arrive —
 // so the figure is complete from the first frame and fills in rather than
 // draws on. Order here is the order they light.
-const STROKES = [
+export const STROKES = [
   // the upper-left crescent: dotted in the track, solid once you reach it
   `M${LEFT} ${MID} A${R} ${R} 0 0 1 ${A} ${TOP} L${B} ${TOP}`,
   `M${B} ${TOP} A${R} ${R} 0 0 1 ${TOUCH} ${MID} A${R} ${R} 0 0 0 ${C} ${BOT}`,
@@ -212,6 +219,25 @@ const STROKES = [
 const DOTTED = [
   `M${B - R} ${MID} A${R} ${R} 0 0 1 ${B} ${TOP}`,
   STROKES[0],
+];
+
+// Which strokes meet at each station. Hovering one lights its own run of the
+// track — the two arcs that actually pass through it — so the drawing answers
+// "what leads here, and what leads away". Derived by hand once rather than by
+// hit-testing the paths at runtime, because the geometry is fixed and this is
+// the kind of thing that should be readable in the source.
+//
+//   I  left edge      the upper crescent and the lower one
+//   II top of B       the upper crescent and the arc across to C
+//   III bottom of C   that arc, and the one up to the right edge
+//   IV right edge     that one, and the long S back to B
+//   V  bottom of B    the long S, the lower crescent, and B's own left arc
+export const STROKES_AT: readonly (readonly number[])[] = [
+  [0, 4],
+  [0, 1],
+  [1, 2],
+  [2, 3],
+  [3, 4, 5],
 ];
 
 // The anchors are sentences, not two-word slogans, so they have to break.
@@ -231,18 +257,25 @@ function Loop({
   active,
   grown = 1,
   unit = 1,
+  hover = null,
+  onHover,
 }: {
   p: number;
   active: number;
   grown?: number;
   /** viewBox units per device pixel, so dashes can be sized in real pixels */
   unit?: number;
+  /** which station the pointer is over, if any */
+  hover?: number | null;
+  onHover?: (i: number | null) => void;
 }) {
   const q = clamp(p);
   // At the foot of the screen the figure is 132px wide; numerals and a sentence
   // would be specks. They arrive with the size.
   const labels = clamp((grown - 0.55) / 0.35);
   const dash = dashAt(unit, grown);
+  // hovering a station shows that stage, and lets go of it again on leave
+  const shown = hover ?? active;
   return (
     <svg className="ae-loop" viewBox="0 0 1410 610" aria-hidden="true">
       {/* The track: every stroke, laid down once at a fifth of the ink. The
@@ -261,13 +294,11 @@ function Loop({
           you reach it. They light whole rather than drawing on, which is what
           keeps the figure from reading as a progress bar. */}
       <g className="ae-loop-scrub">
-        {STROKES.map((d, i) => (
-          <path
-            key={d}
-            d={d}
-            style={{ opacity: clamp((q - i / STROKES.length) * STROKES.length * 1.7) }}
-          />
-        ))}
+        {STROKES.map((d, i) => {
+          const scrubbed = clamp((q - i / STROKES.length) * STROKES.length * 1.7);
+          const held = hover !== null && hover !== undefined && STROKES_AT[hover].includes(i);
+          return <path key={d} d={d} style={{ opacity: held ? 1 : scrubbed }} />;
+        })}
       </g>
 
       {/* Six stations. The bare one carries no numeral — it is where the middle
@@ -276,12 +307,26 @@ function Loop({
       <circle className="ae-loop-dot" cx={BARE.x} cy={BARE.y} r={4} />
       {NODES.map((n, i) => {
         const reached = q >= i / (STAGES.length - 1) - 0.001;
+        const lit = reached || hover === i;
         return (
-          <g key={n.n} className={`ae-loop-node${reached ? ' is-past' : ''}`}>
+          <g key={n.n} className={`ae-loop-node${lit ? ' is-past' : ''}`}>
             <circle className="ae-loop-dot" cx={n.x} cy={n.y} r={4} />
             <text className="ae-loop-num" x={n.x + n.dx} y={n.y + n.dy} textAnchor={n.anchor}>
               {n.n}
             </text>
+            {/* A 4-unit dot is a 4-unit target. This is the one you can
+                actually hit — invisible, and only listening once the figure is
+                big enough that a pointer could land on it in the first place. */}
+            {onHover && labels > 0.9 && (
+              <circle
+                className="ae-loop-hit"
+                cx={n.x}
+                cy={n.y}
+                r={46}
+                onPointerEnter={() => onHover(i)}
+                onPointerLeave={() => onHover(null)}
+              />
+            )}
           </g>
         );
       })}
@@ -291,10 +336,10 @@ function Loop({
           the numeral gets a name. Both lines have to stay inside R of that
           centre or they run into the station sitting on its edge. */}
       <text className="ae-loop-eyebrow" x={C} y={MID - 66} textAnchor="middle">
-        {STAGES[active].n} · {STAGES[active].title}
+        {STAGES[shown].n} · {STAGES[shown].title}
       </text>
       <text className="ae-loop-say" x={C} y={MID - 8} textAnchor="middle">
-        {twoLines(STAGES[active].anchor).map((line, i) => (
+        {twoLines(STAGES[shown].anchor).map((line, i) => (
           <tspan key={line} x={C} dy={i === 0 ? 0 : 38}>
             {line}
           </tspan>
@@ -365,6 +410,8 @@ export function Aerious() {
   // and how far through that section we are, once it has arrived — the diagram
   // holds still and the five stages run through it a second time, at full size
   const [pThrough, setPThrough] = useState(0);
+  // which station the pointer is resting on, if any
+  const [hover, setHover] = useState<number | null>(null);
 
   useEffect(() => {
     let raf = 0;
@@ -552,7 +599,14 @@ export function Aerious() {
           } as CSSProperties
         }
       >
-        <Loop p={pLoop} active={idx} grown={grown} unit={1410 / (figure.w * figure.scale)} />
+        <Loop
+          p={pLoop}
+          active={idx}
+          grown={grown}
+          unit={1410 / (figure.w * figure.scale)}
+          hover={hover}
+          onHover={setHover}
+        />
       </button>
 
       {mapOpen && (
@@ -572,7 +626,7 @@ export function Aerious() {
             </button>
           </div>
           <div className="ae-overlay-stage">
-            <Loop p={pLoop} active={idx} />
+            <Loop p={pLoop} active={idx} hover={hover} onHover={setHover} />
           </div>
         </div>
       )}

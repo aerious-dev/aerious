@@ -1,5 +1,14 @@
 import { render, screen, fireEvent } from '@testing-library/react';
-import { Aerious, dashAt, figureAt, stageAt } from './Aerious';
+import {
+  Aerious,
+  clamp,
+  dashAt,
+  figureAt,
+  stageAt,
+  STATION_POINTS,
+  STROKES,
+  STROKES_AT,
+} from './Aerious';
 
 const renderPage = () => render(<Aerious />);
 
@@ -208,5 +217,71 @@ describe('scrolling on through the diagram', () => {
     expect(stageAt(0, 0, 0).idx).toBe(0);
     expect(stageAt(0.5, 0, 0).idx).toBe(2);
     expect(stageAt(1, 0.5, 0).idx).toBe(4);
+  });
+});
+
+// Hovering a station lights the arcs that meet it. That map is written by hand,
+// so check it against the geometry rather than trusting it: every stroke listed
+// for a station has to actually begin or end at that station's point.
+describe('the track a station reveals', () => {
+  const nums = (d: string) => d.match(/-?\d+(?:\.\d+)?/g)!.map(Number);
+  const ends = (d: string) => {
+    const n = nums(d);
+    return [
+      { x: n[0], y: n[1] },                    // straight after the M
+      { x: n[n.length - 2], y: n[n.length - 1] }, // and the final pair
+    ];
+  };
+  const near = (a: { x: number; y: number }, b: { x: number; y: number }) =>
+    Math.hypot(a.x - b.x, a.y - b.y) < 0.5;
+
+  test('every arc it names really does meet it', () => {
+    STROKES_AT.forEach((list, station) => {
+      const point = STATION_POINTS[station];
+      list.forEach((i) => {
+        const [from, to] = ends(STROKES[i]);
+        expect(
+          near(from, point) || near(to, point),
+          `stroke ${i} does not touch station ${station}`,
+        ).toBe(true);
+      });
+    });
+  });
+
+  test('and it names every arc that meets it', () => {
+    STATION_POINTS.forEach((point, station) => {
+      const touching = STROKES.map((d, i) => [i, ends(d)] as const)
+        .filter(([, [from, to]]) => near(from, point) || near(to, point))
+        .map(([i]) => i);
+      expect([...STROKES_AT[station]].sort()).toEqual(touching.sort());
+    });
+  });
+
+  test('leaves no arc unreachable from any station', () => {
+    const covered = new Set(STROKES_AT.flat());
+    expect(covered.size).toBe(STROKES.length);
+  });
+});
+
+// A viewport can report zero height — hidden tab, prerender, an embed measured
+// before layout — and the progress maths then divides zero by zero. NaN passes
+// every comparison as false, so it does not just look wrong: it silently
+// disables anything guarded by one.
+describe('numbers that never became NaN', () => {
+  test('clamp lands NaN on zero', () => {
+    expect(clamp(NaN)).toBe(0);
+    expect(clamp(-5)).toBe(0);
+    expect(clamp(5)).toBe(1);
+    expect(clamp(0.4)).toBeCloseTo(0.4, 6);
+  });
+
+  test('so nothing downstream of it can go NaN either', () => {
+    const { idx, pLoop } = stageAt(NaN, NaN, NaN);
+    expect(Number.isNaN(pLoop)).toBe(false);
+    expect(Number.isNaN(idx)).toBe(false);
+    expect(dashAt(1, NaN)).toBeUndefined();
+    const f = figureAt(clamp(NaN), 1200, 750, 0);
+    expect(Number.isNaN(f.scale)).toBe(false);
+    expect(Number.isNaN(f.y)).toBe(false);
   });
 });

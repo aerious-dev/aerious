@@ -274,7 +274,11 @@
     top: 50%;
     z-index: 45;
     color: var(--ae-fg);
-    will-change: transform;
+    /* No will-change here. It promotes the figure to a compositor layer, and a
+       layer under a scale transform is rasterised once and resampled by the GPU
+       — which at a tenth of the size comes out visibly soft. Leaving it off
+       makes the browser redraw the vector at whatever size it is actually
+       painting, which is the whole reason for using SVG. */
 }
 /* once it has grown it is the figure, not a button */
 .ae-mark.is-grown { cursor: default; }
@@ -359,6 +363,15 @@
 .ae-loop-track path,
 .ae-loop-track circle,
 .ae-loop-scrub path,
+/* The hit target for a station. Invisible, and much larger than the 4-unit dot
+   it stands for — a dot that small is unhittable, and the arcs either side of
+   it are what the pointer is really aiming at. */
+.ae-loop-hit {
+    fill: transparent;
+    stroke: none;
+    cursor: pointer;
+}
+
 .ae-loop-dot {
     stroke-width: 1;
     vector-effect: non-scaling-stroke;
@@ -373,13 +386,31 @@
 
 /* Dark-filled, so the strokes behind a station stop at its edge rather than
    running through it. */
+/* The hit target for a station. Invisible, and much larger than the 4-unit dot
+   it stands for — a dot that small is unhittable, and the arcs either side of
+   it are what the pointer is really aiming at. */
+.ae-loop-hit {
+    fill: transparent;
+    stroke: none;
+    cursor: pointer;
+}
+
 .ae-loop-dot {
     fill: var(--ae-bg);
     stroke: currentColor;
     opacity: 0.2;
     transition: opacity 0.4s var(--ae-e);
 }
-.ae-loop-node.is-past .ae-loop-dot { opacity: 1; }
+.ae-loop-node.is-past /* The hit target for a station. Invisible, and much larger than the 4-unit dot
+   it stands for — a dot that small is unhittable, and the arcs either side of
+   it are what the pointer is really aiming at. */
+.ae-loop-hit {
+    fill: transparent;
+    stroke: none;
+    cursor: pointer;
+}
+
+.ae-loop-dot { opacity: 1; }
 
 .ae-loop-num {
     font-family: var(--ae-serif);
